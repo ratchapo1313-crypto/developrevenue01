@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "TaxpayerRecord": {
+      "title": "TaxpayerRecord",
+      "description": "Taxpayer information for land and sign taxes including old debt tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "taxType": { "type": "string", "enum": ["land", "sign"] },
+        "assessedAmount": { "type": "number" },
+        "reliefAmount": { "type": "number" },
+        "afterReliefAmount": { "type": "number" },
+        "status": { "type": "number" },
+        "payment1": { "type": "number" },
+        "payment2": { "type": "number" },
+        "payment3": { "type": "number" },
+        "remainingBalance": { "type": "number" },
+        "isFullyPaid": { "type": "boolean" },
+        "isPendingVerification": { "type": "boolean" },
+        "hasOldDebt": { "type": "boolean" },
+        "oldDebtAmount": { "type": "number" },
+        "oldDebtStatus": { "type": "number" },
+        "oldDebtPaid": { "type": "number" },
+        "oldDebtRemaining": { "type": "number" },
+        "penaltyAmount": { "type": "number" },
+        "surchargeAmount": { "type": "number" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "taxType"]
+    },
+    "DailyRecord": {
+      "title": "DailyRecord",
+      "description": "Daily revenue cash receipt entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "categoryName": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "amount": { "type": "number" },
+        "receiptBookNo": { "type": "string" },
+        "receiptNo": { "type": "string" },
+        "payerName": { "type": "string" },
+        "note": { "type": "string" },
+        "recordedAt": { "type": "string" }
+      },
+      "required": ["id", "date", "categoryId", "itemId", "amount"]
+    },
+    "RevenueCategory": {
+      "title": "RevenueCategory",
+      "description": "Budget revenue category definition and item lines",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "title": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["key", "title"]
+    },
+    "TaxSummary": {
+      "title": "TaxSummary",
+      "description": "Aggregated summary of land tax or sign tax",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "taxType": { "type": "string" },
+        "estimateCount": { "type": "number" },
+        "estimateAmount": { "type": "number" },
+        "collected": { "type": "object" },
+        "taxpayers": { "type": "object" },
+        "debtors": { "type": "object" },
+        "pendingVerification": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "taxType"]
+    },
+    "AppDatabaseDoc": {
+      "title": "AppDatabaseDoc",
+      "description": "Central state document for live cross-device synchronization and backup",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "categories": { "type": "array" },
+        "landTax": { "type": "object" },
+        "signTax": { "type": "object" },
+        "taxpayers": { "type": "array" },
+        "dailyRecords": { "type": "array" },
+        "marketContracts": { "type": "array" },
+        "marketSummaries": { "type": "object" },
+        "version": { "type": "number" },
+        "updatedAt": { "type": "string" },
+        "lastUpdatedBy": { "type": "string" }
+      },
+      "required": ["id", "version", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/taxpayers/{taxpayerId}": {
+      "schema": "TaxpayerRecord",
+      "description": "Collection of taxpayer and old debt records"
+    },
+    "/daily_records/{recordId}": {
+      "schema": "DailyRecord",
+      "description": "Collection of daily collection receipts"
+    },
+    "/revenue_categories/{categoryKey}": {
+      "schema": "RevenueCategory",
+      "description": "Collection of 8 revenue categories and items"
+    },
+    "/tax_summaries/{taxType}": {
+      "schema": "TaxSummary",
+      "description": "Summary data for land tax and sign tax"
+    },
+    "/app_state/{docId}": {
+      "schema": "AppDatabaseDoc",
+      "description": "Central state documents for live cross-device sync"
+    }
+  }
+}

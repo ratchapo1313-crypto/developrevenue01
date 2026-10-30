@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'collectsarakham@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // App state synchronization collection (central DB sync)
+    match /app_state/{docId} {
+      allow read: if true;
+      allow create, update: if isValidId(docId) && (
+        incoming().version is number &&
+        incoming().updatedAt is string &&
+        incoming().updatedAt.size() <= 64
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Taxpayers collection (land and sign tax records)
+    match /taxpayers/{taxpayerId} {
+      allow read: if true;
+      allow create, update: if isValidId(taxpayerId) && (
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 200 &&
+        incoming().taxType in ['land', 'sign'] &&
+        incoming().assessedAmount is number
+      );
+      allow delete: if true;
+    }
+
+    // Daily revenue collection receipts
+    match /daily_records/{recordId} {
+      allow read: if true;
+      allow create, update: if isValidId(recordId) && (
+        incoming().date is string && incoming().date.size() <= 32 &&
+        incoming().amount is number &&
+        incoming().categoryId is string
+      );
+      allow delete: if true;
+    }
+
+    // 8 Revenue Categories and items
+    match /revenue_categories/{categoryKey} {
+      allow read: if true;
+      allow create, update: if isValidId(categoryKey) && (
+        incoming().key is string &&
+        incoming().title is string && incoming().title.size() <= 200 &&
+        incoming().items is list
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Tax summaries (land and sign)
+    match /tax_summaries/{taxType} {
+      allow read: if true;
+      allow create, update: if isValidId(taxType) && (
+        incoming().taxType in ['land', 'sign']
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Admins collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

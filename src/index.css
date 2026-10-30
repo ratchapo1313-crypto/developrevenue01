@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Prompt', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+}
+
+.font-sarabun {
+  font-family: 'Sarabun', 'TH Sarabun New', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-shadow-none {
+    box-shadow: none !important;
+    border: none !important;
+  }
+  @page {
+    margin: 1.5cm 2cm;
+    size: A4 portrait;
+  }
+}
