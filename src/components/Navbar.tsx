@@ -108,9 +108,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ปีงบประมาณ 2570
                 </span>
                 {/* Live Real-Time Database Sync Indicator */}
-                <div className="hidden lg:flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-950/70 text-emerald-400 border border-emerald-500/40 text-[11px]">
+                <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 text-[11px]" title="เชื่อมต่อฐานข้อมูล Firebase Firestore: databaserevenuecollection">
                   <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                  <span>Firebase Firestore • ซิงค์คลาวด์เรียลไทม์</span>
+                  <span>Firebase: <span className="font-mono font-semibold text-amber-300">databaserevenuecollection</span> • ออนไลน์</span>
                 </div>
               </div>
               <p className="text-xs text-blue-200/90">
@@ -122,9 +122,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Role Status & Actions */}
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
             {/* Live Database Sync Badge (Mobile/Tablet) */}
-            <div className="flex lg:hidden items-center space-x-1 px-2 py-1 rounded-lg bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-[11px]">
+            <div className="flex lg:hidden items-center space-x-1 px-2 py-1 rounded-lg bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-[11px]" title="เชื่อมต่อฐานข้อมูล: databaserevenuecollection">
               <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-              <span>Firebase ออนไลน์</span>
+              <span className="font-mono text-[10px] text-amber-300">databaserevenuecollection</span>
             </div>
 
             {/* Role Switcher Dropdown */}
