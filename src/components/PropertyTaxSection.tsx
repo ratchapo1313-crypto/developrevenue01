@@ -323,11 +323,37 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
       return (rem2570 + oldRem) > 0;
     }).length;
 
+    const pendingList = tabList.filter((item) => item.isPendingVerification);
+    const pendingCount = pendingList.length;
+    const pendingAmount = pendingList.reduce(
+      (sum, item) =>
+        sum +
+        (item.afterReliefAmount !== undefined
+          ? item.afterReliefAmount
+          : Math.max(0, (item.assessedAmount || 0) - (item.reliefAmount || 0))),
+      0
+    );
+
+    const taxpayersCount = tabList.length;
+    const taxpayersAmount = tabList.reduce(
+      (sum, item) =>
+        sum +
+        (item.afterReliefAmount !== undefined
+          ? item.afterReliefAmount
+          : Math.max(0, (item.assessedAmount || 0) - (item.reliefAmount || 0))),
+      0
+    );
+
     const updatedTaxData: DetailedTaxData = {
       ...baseData,
       collected: {
         count: tabList.filter((item) => {
-          const p = (item.payment1 || 0) + (item.payment2 || 0) + (item.payment3 || 0) + (item.penaltyAmount || 0) + (item.surchargeAmount || 0);
+          const p =
+            (item.payment1 || 0) +
+            (item.payment2 || 0) +
+            (item.payment3 || 0) +
+            (item.penaltyAmount || 0) +
+            (item.surchargeAmount || 0);
           return p > 0;
         }).length,
         amount: totalCollectedFromList > 0 ? totalCollectedFromList : baseData.collected.amount,
@@ -335,6 +361,14 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
       debtors: {
         count: debtorsCount,
         amount: totalRemainingDebt,
+      },
+      taxpayers: {
+        count: taxpayersCount > 0 ? taxpayersCount : baseData.taxpayers.count,
+        amount: taxpayersAmount > 0 ? taxpayersAmount : baseData.taxpayers.amount,
+      },
+      pendingVerification: {
+        count: pendingCount,
+        amount: pendingAmount,
       },
       updatedAt: new Date().toISOString().slice(0, 10),
     };
@@ -345,6 +379,7 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
       onUpdateSignTax(updatedTaxData);
     }
   };
+
 
   // Open Add Modal
   const handleOpenAddTaxpayer = () => {

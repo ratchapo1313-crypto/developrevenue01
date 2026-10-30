@@ -49,7 +49,10 @@ import {
   subscribeToFirestoreSync,
   fetchInitialServerDatabase,
 } from './utils/storage';
-import { bootstrapFirestoreDatabase } from './utils/firebaseDatabase';
+import {
+  bootstrapFirestoreDatabase,
+  subscribeToRevenueCategoriesFromFirestore,
+} from './utils/firebaseDatabase';
 
 
 export default function App() {
@@ -242,6 +245,26 @@ export default function App() {
     };
   }, []);
 
+  // Real-time listener specifically for the 8 revenue_categories Firestore collection
+  useEffect(() => {
+    const unsubCategories = subscribeToRevenueCategoriesFromFirestore((remoteCats) => {
+      if (remoteCats && remoteCats.length === 8 && hasLoadedInitialServerDataRef.current) {
+        isSyncingFromRemoteRef.current = true;
+        setCategories(remoteCats);
+        saveStoredCategories(remoteCats, false, false);
+        const timeStr = new Date().toLocaleTimeString('th-TH');
+        setSyncNotification(`ข้อมูล 8 หมวดรายได้ ซิงค์จาก Firebase (revenue_categories) แล้ว (${timeStr})`);
+        setTimeout(() => {
+          isSyncingFromRemoteRef.current = false;
+        }, 150);
+      }
+    });
+
+    return () => {
+      unsubCategories();
+    };
+  }, []);
+
   // Cross-tab real-time database subscription (same device)
   useEffect(() => {
     const unsubscribe = subscribeToDatabaseSync((msg) => {
@@ -377,6 +400,41 @@ export default function App() {
       return {
         ...cat,
         items: updatedItems,
+      };
+    });
+    setCategories(updated);
+  };
+
+  const handleAddCategoryItem = (
+    categoryId: string,
+    newItem: { name: string; estimate: number; actual: number }
+  ) => {
+    const updated = categories.map((cat) => {
+      if (cat.key !== categoryId) return cat;
+      const id = `${categoryId}-${Date.now()}`;
+      return {
+        ...cat,
+        items: [
+          ...cat.items,
+          {
+            id,
+            categoryKey: categoryId,
+            name: newItem.name,
+            estimate: newItem.estimate,
+            actual: newItem.actual,
+          },
+        ],
+      };
+    });
+    setCategories(updated);
+  };
+
+  const handleDeleteCategoryItem = (categoryId: string, itemId: string) => {
+    const updated = categories.map((cat) => {
+      if (cat.key !== categoryId) return cat;
+      return {
+        ...cat,
+        items: cat.items.filter((item) => item.id !== itemId),
       };
     });
     setCategories(updated);
@@ -779,6 +837,9 @@ export default function App() {
           <RevenueCategoriesTable
             categories={categories}
             onUpdateCategoryItem={handleUpdateCategoryItem}
+            onAddCategoryItem={handleAddCategoryItem}
+            onDeleteCategoryItem={handleDeleteCategoryItem}
+            onSetCategories={setCategories}
             session={session}
           />
         )}

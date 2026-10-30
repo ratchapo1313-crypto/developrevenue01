@@ -6,6 +6,7 @@ import {
   writeBatch,
   collection,
   getDocs,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import {
@@ -106,16 +107,24 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
     };
     batch.set(activeDocRef, centralData);
 
-    // 2. Seed revenue categories documents
+    // 2. Seed revenue categories documents (all 8 categories)
     INITIAL_REVENUE_CATEGORIES.forEach((cat) => {
       const catRef = doc(db, 'revenue_categories', cat.key);
+      const totalEstimate = cat.items.reduce((sum, item) => sum + (item.estimate || 0), 0);
+      const totalActual = cat.items.reduce((sum, item) => sum + (item.actual || 0), 0);
+      const percentage = totalEstimate > 0 ? Number(((totalActual / totalEstimate) * 100).toFixed(2)) : 0;
       batch.set(catRef, {
         key: cat.key,
         title: cat.title,
         shortTitle: cat.shortTitle,
-        description: cat.description,
+        description: cat.description || '',
+        totalEstimate,
+        totalActual,
+        percentage,
+        itemCount: cat.items.length,
         items: cat.items,
         updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
       });
     });
 
@@ -246,6 +255,203 @@ export async function deleteDailyRecordFromFirestore(recordId: string): Promise<
 }
 
 /**
+ * Persists an individual revenue category (one of 8 categories) and its items to Firestore
+ */
+export async function persistRevenueCategoryToFirestore(category: RevenueCategory): Promise<boolean> {
+  try {
+    const totalEstimate = category.items.reduce((sum, item) => sum + (item.estimate || 0), 0);
+    const totalActual = category.items.reduce((sum, item) => sum + (item.actual || 0), 0);
+    const percentage = totalEstimate > 0 ? Number(((totalActual / totalEstimate) * 100).toFixed(2)) : 0;
+    const nowIso = new Date().toISOString();
+
+    const catRef = doc(db, 'revenue_categories', category.key);
+    await setDoc(catRef, {
+      key: category.key,
+      title: category.title,
+      shortTitle: category.shortTitle,
+      description: category.description || '',
+      totalEstimate,
+      totalActual,
+      percentage,
+      itemCount: category.items.length,
+      items: category.items,
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+    return true;
+  } catch (error) {
+    console.warn(`Persist revenue category ${category.key} to Firestore failed:`, error);
+    return false;
+  }
+}
+
+/**
+ * Persists all 8 municipal revenue categories to Firebase Firestore in a single batch
+ */
+export async function persistAllRevenueCategoriesToFirestore(
+  categories: RevenueCategory[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    const batch = writeBatch(db);
+    const nowIso = new Date().toISOString();
+
+    categories.forEach((cat) => {
+      const catRef = doc(db, 'revenue_categories', cat.key);
+      const totalEstimate = cat.items.reduce((sum, item) => sum + (item.estimate || 0), 0);
+      const totalActual = cat.items.reduce((sum, item) => sum + (item.actual || 0), 0);
+      const percentage = totalEstimate > 0 ? Number(((totalActual / totalEstimate) * 100).toFixed(2)) : 0;
+
+      batch.set(catRef, {
+        key: cat.key,
+        title: cat.title,
+        shortTitle: cat.shortTitle,
+        description: cat.description || '',
+        totalEstimate,
+        totalActual,
+        percentage,
+        itemCount: cat.items.length,
+        items: cat.items,
+        updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
+      });
+    });
+
+    // Also update central app_state/active_database
+    const activeDocRef = doc(db, 'app_state', 'active_database');
+    batch.set(
+      activeDocRef,
+      {
+        categories,
+        databaseName: DATABASE_ID,
+        updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+    return { success: true, count: categories.length };
+  } catch (error) {
+    console.error('Batch persist 8 revenue categories to Firestore failed:', error);
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : 'Unknown Firestore batch error',
+    };
+  }
+}
+
+/**
+ * Fetches all 8 revenue categories directly from the Firestore collection
+ */
+export async function fetchRevenueCategoriesFromFirestore(): Promise<RevenueCategory[] | null> {
+  try {
+    const snap = await getDocs(collection(db, 'revenue_categories'));
+    if (snap.empty) {
+      return null;
+    }
+
+    const categoryOrder = [
+      'taxes',
+      'fees_fines_licenses',
+      'property_revenues',
+      'utilities_commercial',
+      'miscellaneous_revenues',
+      'capital_revenues',
+      'allocated_taxes',
+      'grants_subsidies',
+    ];
+
+    const fetchedList: RevenueCategory[] = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      if (data && data.key && data.title && Array.isArray(data.items)) {
+        fetchedList.push({
+          key: data.key,
+          title: data.title,
+          shortTitle: data.shortTitle || data.title,
+          description: data.description || '',
+          items: data.items,
+        });
+      }
+    });
+
+    if (fetchedList.length === 0) return null;
+
+    // Sort to maintain standard 8 category government order
+    fetchedList.sort((a, b) => {
+      const idxA = categoryOrder.indexOf(a.key);
+      const idxB = categoryOrder.indexOf(b.key);
+      return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+    });
+
+    return fetchedList;
+  } catch (error) {
+    console.warn('Fetch revenue categories from Firestore failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Real-time listener for the 8 revenue categories Firestore collection
+ */
+export function subscribeToRevenueCategoriesFromFirestore(
+  callback: (categories: RevenueCategory[]) => void
+): () => void {
+  try {
+    const colRef = collection(db, 'revenue_categories');
+    const categoryOrder = [
+      'taxes',
+      'fees_fines_licenses',
+      'property_revenues',
+      'utilities_commercial',
+      'miscellaneous_revenues',
+      'capital_revenues',
+      'allocated_taxes',
+      'grants_subsidies',
+    ];
+
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const list: RevenueCategory[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data();
+            if (data && data.key && data.title && Array.isArray(data.items)) {
+              list.push({
+                key: data.key,
+                title: data.title,
+                shortTitle: data.shortTitle || data.title,
+                description: data.description || '',
+                items: data.items,
+              });
+            }
+          });
+
+          if (list.length > 0) {
+            list.sort((a, b) => {
+              const idxA = categoryOrder.indexOf(a.key);
+              const idxB = categoryOrder.indexOf(b.key);
+              return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+            });
+            callback(list);
+          }
+        }
+      },
+      (error) => {
+        console.warn('Revenue categories Firestore snapshot listener note:', error);
+      }
+    );
+
+    return unsubscribe;
+  } catch (e) {
+    console.warn('Could not initialize revenue_categories Firestore listener:', e);
+    return () => {};
+  }
+}
+
+/**
  * Fetches the count of documents across Firestore collections for diagnostic stats
  */
 export async function getFirestoreStats(): Promise<{
@@ -276,6 +482,15 @@ export async function getFirestoreStats(): Promise<{
       taxpayersCount = tpSnap.size;
     }
 
+    try {
+      const catSnap = await getDocs(collection(db, 'revenue_categories'));
+      if (!catSnap.empty) {
+        categoriesCount = catSnap.size;
+      }
+    } catch {
+      // fallback to activeDoc
+    }
+
     return {
       connected: true,
       databaseId: DATABASE_ID,
@@ -295,3 +510,4 @@ export async function getFirestoreStats(): Promise<{
     };
   }
 }
+

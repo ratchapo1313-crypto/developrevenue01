@@ -52,12 +52,20 @@
     },
     "RevenueCategory": {
       "title": "RevenueCategory",
-      "description": "Budget revenue category definition and item lines",
+      "description": "Budget revenue category definition and item lines for 8 municipal revenue categories",
       "type": "object",
       "properties": {
         "key": { "type": "string" },
         "title": { "type": "string" },
-        "items": { "type": "array" }
+        "shortTitle": { "type": "string" },
+        "description": { "type": "string" },
+        "totalEstimate": { "type": "number" },
+        "totalActual": { "type": "number" },
+        "percentage": { "type": "number" },
+        "itemCount": { "type": "number" },
+        "items": { "type": "array" },
+        "updatedAt": { "type": "string" },
+        "lastUpdatedBy": { "type": "string" }
       },
       "required": ["key", "title"]
     },

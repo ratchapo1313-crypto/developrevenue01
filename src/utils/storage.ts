@@ -119,6 +119,13 @@ export const syncToFirestore = async (key: string, data: any): Promise<void> => 
       },
       { merge: true }
     );
+
+    // If updating categories, also update the dedicated 8 revenue_categories collection documents
+    if (key === 'categories' && Array.isArray(data)) {
+      import('./firebaseDatabase').then(({ persistAllRevenueCategoriesToFirestore }) => {
+        persistAllRevenueCategoriesToFirestore(data).catch(() => {});
+      });
+    }
   } catch (err) {
     console.warn('Firestore write sync error (local storage still preserved):', err);
   }
