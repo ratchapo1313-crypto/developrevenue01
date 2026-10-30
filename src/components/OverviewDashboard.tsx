@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Landmark,
   PiggyBank,
@@ -9,6 +9,9 @@ import {
   Percent,
   History,
   Receipt,
+  UserCheck,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   RevenueCategory,
@@ -48,6 +51,167 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   });
 
   const totalPercentage = totalEstimate > 0 ? (totalActual / totalEstimate) * 100 : 0;
+
+  // Filter taxpayers by tax type directly matching PropertyTaxSection
+  const landTaxpayers = useMemo(() => {
+    return (taxpayers || []).filter((t) => t.taxType === 'land');
+  }, [taxpayers]);
+
+  const signTaxpayers = useMemo(() => {
+    return (taxpayers || []).filter((t) => t.taxType === 'sign');
+  }, [taxpayers]);
+
+  // Dynamic live statistics for Land Tax (ภาษีที่ดินและสิ่งปลูกสร้าง)
+  // Exactly matching Card 4 "ผู้มีหน้าที่เสียภาษี" and cards from PropertyTaxSection
+  const landLiveStats = useMemo(() => {
+    let assessedTotal = 0;
+    let reliefTotal = 0;
+    let afterReliefTotal = 0;
+    let payments2570Total = 0;
+    let remaining2570Total = 0;
+    let totalRemainingAll = 0;
+    let paidCount = 0;
+    let debtorsCount = 0;
+    let pendingCount = 0;
+    let pendingAmount = 0;
+
+    landTaxpayers.forEach((t) => {
+      assessedTotal += t.assessedAmount || 0;
+      reliefTotal += t.reliefAmount || 0;
+      afterReliefTotal += t.afterReliefAmount || 0;
+
+      const p2570 = (t.payment1 || 0) + (t.payment2 || 0) + (t.payment3 || 0);
+      const rem2570 =
+        t.remainingBalance !== undefined
+          ? t.remainingBalance
+          : Math.max(0, (t.afterReliefAmount || 0) - p2570);
+      const oldRem =
+        t.oldDebtRemaining !== undefined
+          ? t.oldDebtRemaining
+          : Math.max(0, (t.oldDebtAmount || 0) - (t.oldDebtPaid || 0));
+      const pen = t.penaltyAmount || 0;
+      const sur = t.surchargeAmount || 0;
+
+      const thisCollected = p2570 + pen + sur;
+      const thisRemaining = rem2570 + oldRem;
+
+      payments2570Total += thisCollected;
+      totalRemainingAll += thisRemaining;
+
+      if (thisCollected > 0 || (t.oldDebtPaid || 0) > 0) {
+        paidCount += 1;
+      }
+      if (thisRemaining > 0) {
+        debtorsCount += 1;
+      }
+      if (t.isPendingVerification) {
+        pendingCount += 1;
+        pendingAmount +=
+          t.afterReliefAmount !== undefined ? t.afterReliefAmount : t.assessedAmount || 0;
+      }
+    });
+
+    const hasLiveTaxpayers = landTaxpayers.length > 0;
+
+    return {
+      // ผู้มีหน้าที่เสียภาษี (แสดงตรงกับ Card 4 ในหน้าภาษีที่ดิน & ภาษีป้าย)
+      taxpayersCount: hasLiveTaxpayers ? landTaxpayers.length : (landTax.taxpayers?.count || 0),
+      taxpayersAmount: hasLiveTaxpayers ? assessedTotal : (landTax.taxpayers?.amount || 0),
+      // จัดเก็บได้จริง
+      collectedCount: hasLiveTaxpayers && paidCount > 0 ? paidCount : landTax.collected.count,
+      collectedAmount:
+        hasLiveTaxpayers && payments2570Total > 0 ? payments2570Total : landTax.collected.amount,
+      // ตั้งลูกหนี้
+      debtorsCount: hasLiveTaxpayers && debtorsCount > 0 ? debtorsCount : landTax.debtors.count,
+      debtorsAmount:
+        hasLiveTaxpayers && totalRemainingAll > 0 ? totalRemainingAll : landTax.debtors.amount,
+      // อยู่ระหว่างตรวจสอบ
+      pendingCount:
+        hasLiveTaxpayers && pendingCount > 0
+          ? pendingCount
+          : landTax.pendingVerification?.count || 0,
+      pendingAmount:
+        hasLiveTaxpayers && pendingAmount > 0
+          ? pendingAmount
+          : landTax.pendingVerification?.amount || 0,
+    };
+  }, [landTaxpayers, landTax]);
+
+  // Dynamic live statistics for Sign Tax (ภาษีป้าย)
+  // Exactly matching Card 4 "ผู้มีหน้าที่เสียภาษี" and cards from PropertyTaxSection
+  const signLiveStats = useMemo(() => {
+    let assessedTotal = 0;
+    let reliefTotal = 0;
+    let afterReliefTotal = 0;
+    let payments2570Total = 0;
+    let remaining2570Total = 0;
+    let totalRemainingAll = 0;
+    let paidCount = 0;
+    let debtorsCount = 0;
+    let pendingCount = 0;
+    let pendingAmount = 0;
+
+    signTaxpayers.forEach((t) => {
+      assessedTotal += t.assessedAmount || 0;
+      reliefTotal += t.reliefAmount || 0;
+      afterReliefTotal += t.afterReliefAmount || 0;
+
+      const p2570 = (t.payment1 || 0) + (t.payment2 || 0) + (t.payment3 || 0);
+      const rem2570 =
+        t.remainingBalance !== undefined
+          ? t.remainingBalance
+          : Math.max(0, (t.afterReliefAmount || 0) - p2570);
+      const oldRem =
+        t.oldDebtRemaining !== undefined
+          ? t.oldDebtRemaining
+          : Math.max(0, (t.oldDebtAmount || 0) - (t.oldDebtPaid || 0));
+      const pen = t.penaltyAmount || 0;
+      const sur = t.surchargeAmount || 0;
+
+      const thisCollected = p2570 + pen + sur;
+      const thisRemaining = rem2570 + oldRem;
+
+      payments2570Total += thisCollected;
+      totalRemainingAll += thisRemaining;
+
+      if (thisCollected > 0 || (t.oldDebtPaid || 0) > 0) {
+        paidCount += 1;
+      }
+      if (thisRemaining > 0) {
+        debtorsCount += 1;
+      }
+      if (t.isPendingVerification) {
+        pendingCount += 1;
+        pendingAmount +=
+          t.afterReliefAmount !== undefined ? t.afterReliefAmount : t.assessedAmount || 0;
+      }
+    });
+
+    const hasLiveTaxpayers = signTaxpayers.length > 0;
+
+    return {
+      // ผู้มีหน้าที่เสียภาษี (แสดงตรงกับ Card 4 ในหน้าภาษีที่ดิน & ภาษีป้าย)
+      taxpayersCount: hasLiveTaxpayers ? signTaxpayers.length : (signTax.taxpayers?.count || 0),
+      taxpayersAmount: hasLiveTaxpayers ? assessedTotal : (signTax.taxpayers?.amount || 0),
+      // จัดเก็บได้จริง
+      collectedCount: hasLiveTaxpayers && paidCount > 0 ? paidCount : signTax.collected.count,
+      collectedAmount:
+        hasLiveTaxpayers && payments2570Total > 0 ? payments2570Total : signTax.collected.amount,
+      // ตั้งลูกหนี้
+      debtorsCount: hasLiveTaxpayers && debtorsCount > 0 ? debtorsCount : signTax.debtors.count,
+      debtorsAmount:
+        hasLiveTaxpayers && totalRemainingAll > 0 ? totalRemainingAll : signTax.debtors.amount,
+      // อยู่ระหว่างตรวจสอบ
+      pendingCount:
+        hasLiveTaxpayers && pendingCount > 0
+          ? pendingCount
+          : signTax.pendingVerification?.count || 0,
+      pendingAmount:
+        hasLiveTaxpayers && pendingAmount > 0
+          ? pendingAmount
+          : signTax.pendingVerification?.amount || 0,
+    };
+  }, [signTaxpayers, signTax]);
 
   // Aggregate Old Tax Debt Stats for Land Tax and Sign Tax
   const oldDebtorsList = (taxpayers || []).filter(
@@ -237,7 +401,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <h3 className="font-bold text-slate-800 text-sm">ภาษีที่ดินและสิ่งปลูกสร้าง (ปี 2570)</h3>
               </div>
               <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
-                {((landTax.collected.amount / (landTax.estimateAmount || 1)) * 100).toFixed(1)}%
+                {((landLiveStats.collectedAmount / (landTax.estimateAmount || 1)) * 100).toFixed(1)}%
               </span>
             </div>
 
@@ -247,17 +411,29 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <span className="font-semibold text-slate-800">฿{formatCurrency(landTax.estimateAmount)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">จัดเก็บได้จริง ({formatNumber(landTax.collected.count)} ราย):</span>
-                <span className="font-bold text-emerald-600">฿{formatCurrency(landTax.collected.amount)}</span>
+                <span className="text-slate-500">จัดเก็บได้จริง ({formatNumber(landLiveStats.collectedCount)} ราย):</span>
+                <span className="font-bold text-emerald-600">฿{formatCurrency(landLiveStats.collectedAmount)}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100 bg-blue-50/70 -mx-1.5 px-1.5 rounded-lg">
+                <span className="text-blue-900 font-bold flex items-center space-x-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>ผู้มีหน้าที่เสียภาษี ({formatNumber(landLiveStats.taxpayersCount)} ราย):</span>
+                </span>
+                <span className="font-extrabold text-blue-950">฿{formatCurrency(landLiveStats.taxpayersAmount)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">ผู้มีหน้าที่เสียภาษี ({formatNumber(landTax.taxpayers.count)} ราย):</span>
-                <span className="font-semibold text-slate-700">฿{formatCurrency(landTax.taxpayers.amount)}</span>
+                <span className="text-slate-500">ตั้งลูกหนี้ ({formatNumber(landLiveStats.debtorsCount)} ราย):</span>
+                <span className="font-semibold text-rose-600">฿{formatCurrency(landLiveStats.debtorsAmount)}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">ตั้งลูกหนี้ ({formatNumber(landTax.debtors.count)} ราย):</span>
-                <span className="font-semibold text-rose-600">฿{formatCurrency(landTax.debtors.amount)}</span>
-              </div>
+              {landLiveStats.pendingCount > 0 && (
+                <div className="flex justify-between py-1 border-b border-slate-100 bg-purple-50/60 -mx-1.5 px-1.5 rounded-lg text-purple-800">
+                  <span className="text-purple-700 font-medium flex items-center space-x-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <span>อยู่ระหว่างตรวจสอบ ({formatNumber(landLiveStats.pendingCount)} ราย):</span>
+                  </span>
+                  <span className="font-bold text-purple-900">฿{formatCurrency(landLiveStats.pendingAmount)}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -281,7 +457,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <h3 className="font-bold text-slate-800 text-sm">ภาษีป้าย (ปี 2570)</h3>
               </div>
               <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                {((signTax.collected.amount / (signTax.estimateAmount || 1)) * 100).toFixed(1)}%
+                {((signLiveStats.collectedAmount / (signTax.estimateAmount || 1)) * 100).toFixed(1)}%
               </span>
             </div>
 
@@ -291,17 +467,29 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
                 <span className="font-semibold text-slate-800">฿{formatCurrency(signTax.estimateAmount)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">จัดเก็บได้จริง ({formatNumber(signTax.collected.count)} ราย):</span>
-                <span className="font-bold text-emerald-600">฿{formatCurrency(signTax.collected.amount)}</span>
+                <span className="text-slate-500">จัดเก็บได้จริง ({formatNumber(signLiveStats.collectedCount)} ราย):</span>
+                <span className="font-bold text-emerald-600">฿{formatCurrency(signLiveStats.collectedAmount)}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-100 bg-amber-50/70 -mx-1.5 px-1.5 rounded-lg">
+                <span className="text-amber-900 font-bold flex items-center space-x-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>ผู้มีหน้าที่เสียภาษี ({formatNumber(signLiveStats.taxpayersCount)} ราย):</span>
+                </span>
+                <span className="font-extrabold text-amber-950">฿{formatCurrency(signLiveStats.taxpayersAmount)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">ผู้มีหน้าที่เสียภาษี ({formatNumber(signTax.taxpayers.count)} ราย):</span>
-                <span className="font-semibold text-slate-700">฿{formatCurrency(signTax.taxpayers.amount)}</span>
+                <span className="text-slate-500">ตั้งลูกหนี้ ({formatNumber(signLiveStats.debtorsCount)} ราย):</span>
+                <span className="font-semibold text-rose-600">฿{formatCurrency(signLiveStats.debtorsAmount)}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">ตั้งลูกหนี้ ({formatNumber(signTax.debtors.count)} ราย):</span>
-                <span className="font-semibold text-rose-600">฿{formatCurrency(signTax.debtors.amount)}</span>
-              </div>
+              {signLiveStats.pendingCount > 0 && (
+                <div className="flex justify-between py-1 border-b border-slate-100 bg-purple-50/60 -mx-1.5 px-1.5 rounded-lg text-purple-800">
+                  <span className="text-purple-700 font-medium flex items-center space-x-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <span>อยู่ระหว่างตรวจสอบ ({formatNumber(signLiveStats.pendingCount)} ราย):</span>
+                  </span>
+                  <span className="font-bold text-purple-900">฿{formatCurrency(signLiveStats.pendingAmount)}</span>
+                </div>
+              )}
             </div>
           </div>
 

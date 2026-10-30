@@ -356,6 +356,43 @@ export default function App() {
     saveStoredTaxpayers(taxpayers, true);
   }, [taxpayers]);
 
+  // Automatically keep landTax.taxpayers and signTax.taxpayers updated with active taxpayers registry
+  useEffect(() => {
+    if (taxpayers && taxpayers.length > 0) {
+      const landList = taxpayers.filter((t) => t.taxType === 'land');
+      const signList = taxpayers.filter((t) => t.taxType === 'sign');
+
+      const landAssessed = landList.reduce((s, t) => s + (t.assessedAmount || 0), 0);
+      const signAssessed = signList.reduce((s, t) => s + (t.assessedAmount || 0), 0);
+
+      setLandTax((prev) => {
+        if (prev.taxpayers.count === landList.length && prev.taxpayers.amount === landAssessed) {
+          return prev;
+        }
+        return {
+          ...prev,
+          taxpayers: {
+            count: landList.length,
+            amount: landAssessed,
+          },
+        };
+      });
+
+      setSignTax((prev) => {
+        if (prev.taxpayers.count === signList.length && prev.taxpayers.amount === signAssessed) {
+          return prev;
+        }
+        return {
+          ...prev,
+          taxpayers: {
+            count: signList.length,
+            amount: signAssessed,
+          },
+        };
+      });
+    }
+  }, [taxpayers]);
+
   useEffect(() => {
     if (!hasLoadedInitialServerDataRef.current || isSyncingFromRemoteRef.current) return;
     saveStoredOldTaxDebtors(oldTaxDebtors, true);
