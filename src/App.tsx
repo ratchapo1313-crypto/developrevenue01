@@ -49,6 +49,8 @@ import {
   subscribeToFirestoreSync,
   fetchInitialServerDatabase,
 } from './utils/storage';
+import { bootstrapFirestoreDatabase } from './utils/firebaseDatabase';
+
 
 export default function App() {
   // Navigation State
@@ -78,8 +80,9 @@ export default function App() {
   // Guard to prevent initial mount from overwriting central server database with client defaults
   const hasLoadedInitialServerDataRef = useRef<boolean>(false);
 
-  // Initial load from central server database (ensures all other computers/devices get latest data)
+  // Initial load from central database and automatic Firebase Firestore bootstrap
   useEffect(() => {
+    // 1. Fetch initial server database cache
     fetchInitialServerDatabase()
       .then((serverData) => {
         if (serverData) {
@@ -103,7 +106,37 @@ export default function App() {
           isSyncingFromRemoteRef.current = false;
         }, 150);
       });
+
+    // 2. Automatically verify, create, and bootstrap Firebase Firestore (databaserevenuecollection)
+    bootstrapFirestoreDatabase()
+      .then((fbRes) => {
+        if (fbRes.success) {
+          if (fbRes.isNewlyCreated) {
+            setSyncNotification('เชื่อมต่อ Firebase และสร้างฐานข้อมูล databaserevenuecollection สำหรับจัดเก็บข้อมูลอัตโนมัติแล้ว');
+          }
+          // If serverData was not present, hydrate from cloud Firestore
+          if (fbRes.data && !hasLoadedInitialServerDataRef.current) {
+            isSyncingFromRemoteRef.current = true;
+            if (fbRes.data.categories) setCategories(fbRes.data.categories);
+            if (fbRes.data.landTax) setLandTax(fbRes.data.landTax);
+            if (fbRes.data.signTax) setSignTax(fbRes.data.signTax);
+            if (fbRes.data.taxpayers) setTaxpayers(fbRes.data.taxpayers);
+            if (fbRes.data.oldTaxDebtors) setOldTaxDebtors(fbRes.data.oldTaxDebtors);
+            if (fbRes.data.marketSummaries) setMarketSummaries(fbRes.data.marketSummaries);
+            if (fbRes.data.marketContracts) setMarketContracts(fbRes.data.marketContracts);
+            if (fbRes.data.dailyRecords) setDailyRecords(fbRes.data.dailyRecords);
+            hasLoadedInitialServerDataRef.current = true;
+            setTimeout(() => {
+              isSyncingFromRemoteRef.current = false;
+            }, 150);
+          }
+        }
+      })
+      .catch((fbErr) => {
+        console.warn('Firebase bootstrap initial check note:', fbErr);
+      });
   }, []);
+
 
   // Multi-device real-time Server-Sent Events subscription (cross-machine live sync)
   useEffect(() => {

@@ -113,6 +113,8 @@ export const syncToFirestore = async (key: string, data: any): Promise<void> => 
       {
         [key]: data,
         lastUpdatedBy: CURRENT_TAB_ID,
+        version: 1,
+        databaseName: 'databaserevenuecollection',
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
@@ -121,6 +123,7 @@ export const syncToFirestore = async (key: string, data: any): Promise<void> => 
     console.warn('Firestore write sync error (local storage still preserved):', err);
   }
 };
+
 
 /**
  * Subscribes to Cloud Firestore real-time snapshot events across all devices and users

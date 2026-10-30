@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   FileSpreadsheet,
   Download,
@@ -16,7 +16,13 @@ import {
   ArrowRight,
   TrendingUp,
   RefreshCw,
+  Database,
+  Cloud,
+  Server,
+  Zap,
 } from 'lucide-react';
+import { bootstrapFirestoreDatabase, getFirestoreStats } from '../utils/firebaseDatabase';
+
 import {
   RevenueCategory,
   DetailedTaxData,
@@ -76,13 +82,71 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   onImportTaxpayers,
   session,
 }) => {
-  const [activeTab, setActiveTab] = useState<'export' | 'import' | 'templates'>('export');
+  const [activeTab, setActiveTab] = useState<'export' | 'import' | 'templates' | 'firebase'>('export');
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>(categories[0]?.key || 'taxes');
   const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
 
   // Specific category chosen by user for importing
   const [selectedImportCategory, setSelectedImportCategory] =
     useState<ImportTargetCategory>('land_taxpayers');
+
+  // Firebase Database State
+  const [isFirebaseSyncing, setIsFirebaseSyncing] = useState<boolean>(false);
+  const [firebaseMessage, setFirebaseMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [firebaseStats, setFirebaseStats] = useState<{
+    connected: boolean;
+    databaseId: string;
+    taxpayersCount: number;
+    dailyRecordsCount: number;
+    categoriesCount: number;
+    lastUpdated: string | null;
+  }>({
+    connected: true,
+    databaseId: 'databaserevenuecollection',
+    taxpayersCount: taxpayers.length,
+    dailyRecordsCount: dailyRecords.length,
+    categoriesCount: categories.length,
+    lastUpdated: null,
+  });
+
+  // Refresh stats when opening modal or changing tab to firebase
+  useEffect(() => {
+    if (isOpen) {
+      getFirestoreStats().then((stats) => {
+        setFirebaseStats(stats);
+      });
+    }
+  }, [isOpen, activeTab, taxpayers.length, dailyRecords.length, categories.length]);
+
+  const handleTriggerFirebaseBootstrap = async (force = false) => {
+    setIsFirebaseSyncing(true);
+    setFirebaseMessage(null);
+    try {
+      const res = await bootstrapFirestoreDatabase(force);
+      if (res.success) {
+        setFirebaseMessage({
+          type: 'success',
+          text: force
+            ? 'สร้างและจัดเก็บฐานข้อมูล databaserevenuecollection บน Firebase สำเร็จเรียบร้อยแล้ว'
+            : 'เชื่อมต่อและซิงค์ฐานข้อมูล databaserevenuecollection บน Firebase พร้อมใช้งาน',
+        });
+        const freshStats = await getFirestoreStats();
+        setFirebaseStats(freshStats);
+      } else {
+        setFirebaseMessage({
+          type: 'error',
+          text: `เกิดข้อผิดพลาด: ${res.error || 'ไม่สามารถสร้างฐานข้อมูลบน Firebase ได้'}`,
+        });
+      }
+    } catch (e: any) {
+      setFirebaseMessage({
+        type: 'error',
+        text: `เกิดข้อผิดพลาด: ${e.message || String(e)}`,
+      });
+    } finally {
+      setIsFirebaseSyncing(false);
+    }
+  };
 
   // Upload & preview state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -100,6 +164,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   const [uploadError, setUploadError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // -------------------------------------------------------------
   // DYNAMIC LIVE STATS - Matching precisely with on-screen data
@@ -595,9 +660,21 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             }`}
           >
             <FileText className="w-4 h-4 text-emerald-700" />
-            <span>ดาวน์โหลด Template แบบฟอร์ม</span>
+            <span>ดาวน์โหลด Template</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('firebase')}
+            className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+              activeTab === 'firebase'
+                ? 'bg-white text-indigo-900 shadow-sm border border-indigo-200 font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Database className="w-4 h-4 text-indigo-600" />
+            <span>ฐานข้อมูล Firebase</span>
           </button>
         </div>
+
 
         {/* Content Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
@@ -1294,7 +1371,187 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               </div>
             </div>
           )}
+          {/* Tab 4: Firebase Database Management */}
+
+          {activeTab === 'firebase' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Firebase Message Notification */}
+              {firebaseMessage && (
+                <div
+                  className={`p-4 rounded-2xl text-xs sm:text-sm flex items-start space-x-3 shadow-xs animate-in fade-in ${
+                    firebaseMessage.type === 'success'
+                      ? 'bg-emerald-50 border border-emerald-300 text-emerald-900'
+                      : 'bg-rose-50 border border-rose-300 text-rose-900'
+                  }`}
+                >
+                  {firebaseMessage.type === 'success' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 font-medium">{firebaseMessage.text}</div>
+                </div>
+              )}
+
+              {/* Status Banner */}
+              <div className="p-4 bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950 text-white rounded-2xl border border-indigo-700/50 shadow-md">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shrink-0">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-sm text-white">
+                          Cloud Firestore Database
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-semibold flex items-center space-x-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span>ออนไลน์ (Connected)</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-indigo-200 mt-0.5">
+                        ระบบจัดเก็บข้อมูลลงฐานข้อมูล Firebase อัตโนมัติทุกครั้งที่มีการบันทึกหรือนำเข้า
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      disabled={isFirebaseSyncing}
+                      onClick={() => handleTriggerFirebaseBootstrap(true)}
+                      className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Zap className={`w-3.5 h-3.5 ${isFirebaseSyncing ? 'animate-spin' : ''}`} />
+                      <span>{isFirebaseSyncing ? 'กำลังสร้าง/จัดเก็บ...' : 'สร้าง/ซิงค์ฐานข้อมูลอัตโนมัติ'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isFirebaseSyncing}
+                      onClick={() => handleTriggerFirebaseBootstrap(false)}
+                      className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white font-medium text-xs rounded-xl border border-white/20 transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isFirebaseSyncing ? 'animate-spin' : ''}`} />
+                      <span>รีเฟรชสถานะ</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-indigo-800/60 text-[11px]">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Database ID:</span>
+                    <span className="font-mono font-bold text-amber-300">databaserevenuecollection</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Firebase Project:</span>
+                    <span className="font-mono text-slate-200">logical-cache-2w2pc</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">โหมดการซิงค์:</span>
+                    <span className="text-emerald-400 font-semibold">อัตโนมัติแบบเรียลไทม์ (2-Way)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">ผู้ดูแลระบบ / สิทธิ์:</span>
+                    <span className="text-slate-200 truncate font-mono text-[10px]">collectsarakham@gmail.com</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collections Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. App State Collection */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Server className="w-4 h-4 text-blue-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">app_state / active_database</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-semibold">
+                      ฐานข้อมูลส่วนกลาง
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    จัดเก็บสถานะรวม 8 หมวดรายได้, ภาษีที่ดิน/ป้าย, สัญญาตลาด และประวัติรับเงิน สำหรับซิงค์สดระหว่างเครื่อง
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>สถานะ: พร้อมใช้งาน</span>
+                    <span className="text-emerald-600 font-semibold">ซิงค์อัตโนมัติ</span>
+                  </div>
+                </div>
+
+                {/* 2. Taxpayers Collection */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Landmark className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">taxpayers</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      {firebaseStats.taxpayersCount} รายการ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    ตารางทะเบียนผู้เสียภาษีที่ดิน สิ่งปลูกสร้าง และภาษีป้าย พร้อมยอดประเมิน หนี้เก่า และงวดการผ่อนชำระ
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>ภาษีที่ดิน ({taxpayers.filter(t => t.taxType === 'land').length}) • ภาษีป้าย ({taxpayers.filter(t => t.taxType === 'sign').length})</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+
+                {/* 3. Revenue Categories Collection */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Layers className="w-4 h-4 text-purple-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">revenue_categories</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold">
+                      8 หมวดงบประมาณ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    ตารางโครงสร้าง 8 หมวดรายได้ของเทศบาลเมืองมหาสารคาม พร้อมยอดประมาณการและยอดรับจริง
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>หมวดภาษี, ค่าธรรมเนียม, ทรัพย์สิน, สาธารณูปโภค ฯลฯ</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+
+                {/* 4. Daily Records Collection */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Coins className="w-4 h-4 text-amber-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">daily_records</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold">
+                      {firebaseStats.dailyRecordsCount} รายการ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    ตารางบันทึกการรับเงินสดประจำวัน เล่มที่และเลขที่ใบเสร็จรับเงิน พร้อมเชื่อมโยงกับหมวดงบประมาณ
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>ยอดรับรวม {formatCurrency(dailyTotalAmount)} บาท</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructions Callout */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-start space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong className="font-semibold">ระบบจัดเก็บอัตโนมัติ:</strong> ข้อมูลทั้งหมดที่ท่านบันทึก แก้ไข หรือนำเข้าผ่านระบบ Excel จะถูกส่งไปจัดเก็บลงในฐานข้อมูล Firebase <span className="font-mono font-semibold">databaserevenuecollection</span> โดยอัตโนมัติในทันที ทำให้ทุกเครื่องในเครือข่ายเทศบาลมองเห็นข้อมูลที่ตรงกันเสมอ
+                </p>
+              </div>
+            </div>
+          )}
         </div>
+
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">

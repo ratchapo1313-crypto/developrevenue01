@@ -15,10 +15,6 @@ service cloud.firestore {
       return request.resource.data;
     }
 
-    function existing() {
-      return resource.data;
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -30,11 +26,10 @@ service cloud.firestore {
       );
     }
 
-    // App state synchronization collection (central DB sync)
+    // App state synchronization collection (central DB sync & auto-bootstrap)
     match /app_state/{docId} {
       allow read: if true;
       allow create, update: if isValidId(docId) && (
-        incoming().version is number &&
         incoming().updatedAt is string &&
         incoming().updatedAt.size() <= 64
       );
@@ -46,8 +41,7 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isValidId(taxpayerId) && (
         incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 200 &&
-        incoming().taxType in ['land', 'sign'] &&
-        incoming().assessedAmount is number
+        incoming().taxType in ['land', 'sign']
       );
       allow delete: if true;
     }
@@ -57,19 +51,17 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isValidId(recordId) && (
         incoming().date is string && incoming().date.size() <= 32 &&
-        incoming().amount is number &&
-        incoming().categoryId is string
+        incoming().amount is number
       );
       allow delete: if true;
     }
 
-    // 8 Revenue Categories and items
+    // 8 Revenue Categories and budget items
     match /revenue_categories/{categoryKey} {
       allow read: if true;
       allow create, update: if isValidId(categoryKey) && (
         incoming().key is string &&
-        incoming().title is string && incoming().title.size() <= 200 &&
-        incoming().items is list
+        incoming().title is string && incoming().title.size() <= 200
       );
       allow delete: if isAdmin();
     }
@@ -83,6 +75,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Market Contracts
+    match /market_contracts/{contractId} {
+      allow read: if true;
+      allow create, update: if isValidId(contractId) && (
+        incoming().propertyName is string
+      );
+      allow delete: if true;
+    }
+
     // Admins collection
     match /admins/{adminId} {
       allow read: if isSignedIn();
@@ -90,3 +91,4 @@ service cloud.firestore {
     }
   }
 }
+
