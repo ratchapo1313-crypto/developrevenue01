@@ -556,7 +556,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-2.5 pt-2.5 border-t border-slate-800 text-[11px]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-2.5 pt-2.5 border-t border-slate-800 text-[11px]">
             {/* Land tax summary */}
             <div className="bg-slate-800/80 p-2 rounded-xl border border-blue-500/30">
               <div className="text-blue-300 font-bold flex items-center space-x-1">
@@ -605,23 +605,6 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               </div>
               <div className="text-amber-300 font-semibold">
                 จัดเก็บได้: {totalBudgetPercent.toFixed(2)}%
-              </div>
-            </div>
-
-            {/* Daily records summary */}
-            <div className="bg-slate-800/80 p-2 rounded-xl border border-emerald-500/30">
-              <div className="text-emerald-300 font-bold flex items-center space-x-1">
-                <Coins className="w-3 h-3" />
-                <span>บันทึกรายรับประจำวัน</span>
-              </div>
-              <div className="mt-1 text-slate-200">
-                บันทึกสะสม: <span className="font-semibold text-white">{formatNumber(dailyRecords.length)}</span> รายการ
-              </div>
-              <div className="text-emerald-400 font-medium">
-                ยอดรวม: {formatCurrency(dailyTotalAmount)} บ.
-              </div>
-              <div className="text-slate-400">
-                พร้อมเชื่อม 8 หมวด
               </div>
             </div>
           </div>
@@ -891,7 +874,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   <span>เลือกหมวดข้อมูลที่ต้องการนำเข้า:</span>
                 </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {/* Category 1: Land Tax */}
                   <div
                     onClick={() => handleCategorySelectionChange('land_taxpayers')}
@@ -946,34 +929,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                     </p>
                   </div>
 
-                  {/* Category 3: Daily Records */}
-                  <div
-                    onClick={() => handleCategorySelectionChange('daily')}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
-                      selectedImportCategory === 'daily'
-                        ? 'border-emerald-600 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs'
-                        : 'border-slate-200 bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                          <Coins className="w-4 h-4" />
-                        </div>
-                        <span className="font-bold text-xs text-slate-900">
-                          บันทึกรายรับประจำวัน
-                        </span>
-                      </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 font-semibold">
-                        {dailyRecords.length} รายการ
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-2">
-                      บันทึกการรับเงินรายวัน เล่มที่/เลขที่ใบเสร็จ
-                    </p>
-                  </div>
-
-                  {/* Category 4: Budget 8 Categories */}
+                  {/* Category 3: Budget 8 Categories */}
                   <div
                     onClick={() => handleCategorySelectionChange('budget')}
                     className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
@@ -1000,10 +956,10 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                     </p>
                   </div>
 
-                  {/* Category 5: Auto-detect */}
+                  {/* Category 4: Auto-detect */}
                   <div
                     onClick={() => handleCategorySelectionChange('auto')}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between sm:col-span-2 lg:col-span-2 ${
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between sm:col-span-3 ${
                       selectedImportCategory === 'auto'
                         ? 'border-indigo-600 bg-indigo-50/70 ring-2 ring-indigo-500/20 shadow-xs'
                         : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -1023,7 +979,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-2">
-                      เหมาะสำหรับไฟล์ Excel ที่มีหลายชีต ระบบจะอ่านชีตภาษีที่ดิน ภาษีป้าย หรือรายรับให้โดยอัตโนมัติ
+                      เหมาะสำหรับไฟล์ Excel ที่มีหลายชีต ระบบจะอ่านชีตภาษีที่ดิน ภาษีป้าย หรือ 8 หมวดรายได้ให้โดยอัตโนมัติ
                     </p>
                   </div>
                 </div>
@@ -1349,26 +1305,6 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   <span>ดาวน์โหลด Template งบประมาณ</span>
                 </button>
               </div>
-
-              {/* Template 5: Daily Records */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-bold text-slate-800 text-xs sm:text-sm flex items-center space-x-1.5">
-                    <Coins className="w-4 h-4 text-emerald-700" />
-                    <span>แบบฟอร์มนำเข้าบันทึกรายรับประจำวัน</span>
-                  </h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    คอลัมน์: วันที่ (YYYY-MM-DD), หมวดรายได้, รายการรายได้, จำนวนเงิน (บาท), เล่มที่ใบเสร็จ, เลขที่ใบเสร็จ, ผู้ชำระเงิน, หมายเหตุ
-                  </p>
-                </div>
-                <button
-                  onClick={downloadDailyRecordsTemplate}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl flex items-center justify-center space-x-1.5 shrink-0 cursor-pointer shadow-xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>ดาวน์โหลด Template รายรับ</span>
-                </button>
-              </div>
             </div>
           )}
           {/* Tab 4: Firebase Database Management */}
@@ -1459,7 +1395,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               </div>
 
               {/* Collections Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* 1. App State Collection */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
@@ -1516,26 +1452,6 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   </p>
                   <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
                     <span>หมวดภาษี, ค่าธรรมเนียม, ทรัพย์สิน, สาธารณูปโภค ฯลฯ</span>
-                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
-                  </div>
-                </div>
-
-                {/* 4. Daily Records Collection */}
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Coins className="w-4 h-4 text-amber-600" />
-                      <span className="font-bold text-xs text-slate-900 font-mono">daily_records</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold">
-                      {firebaseStats.dailyRecordsCount} รายการ
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mt-1">
-                    ตารางบันทึกการรับเงินสดประจำวัน เล่มที่และเลขที่ใบเสร็จรับเงิน พร้อมเชื่อมโยงกับหมวดงบประมาณ
-                  </p>
-                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>ยอดรับรวม {formatCurrency(dailyTotalAmount)} บาท</span>
                     <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
                   </div>
                 </div>
