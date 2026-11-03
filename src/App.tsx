@@ -52,6 +52,7 @@ import {
 import {
   bootstrapFirestoreDatabase,
   subscribeToRevenueCategoriesFromFirestore,
+  subscribeToTaxSummariesFromFirestore,
 } from './utils/firebaseDatabase';
 
 
@@ -262,6 +263,32 @@ export default function App() {
 
     return () => {
       unsubCategories();
+    };
+  }, []);
+
+  // Real-time listener specifically for the tax_summaries Firestore collection (land & sign tax tracking)
+  useEffect(() => {
+    const unsubTaxSummaries = subscribeToTaxSummariesFromFirestore(({ landTax: remoteLand, signTax: remoteSign }) => {
+      if (!hasLoadedInitialServerDataRef.current) return;
+      isSyncingFromRemoteRef.current = true;
+      const timeStr = new Date().toLocaleTimeString('th-TH');
+
+      if (remoteLand) {
+        setLandTax(remoteLand);
+        saveStoredLandTax(remoteLand, false, false);
+      }
+      if (remoteSign) {
+        setSignTax(remoteSign);
+        saveStoredSignTax(remoteSign, false, false);
+      }
+      setSyncNotification(`ข้อมูลระบบติดตามผลการจัดเก็บภาษีที่ดิน/ภาษีป้าย ซิงค์จาก Firebase (tax_summaries) แล้ว (${timeStr})`);
+      setTimeout(() => {
+        isSyncingFromRemoteRef.current = false;
+      }, 150);
+    });
+
+    return () => {
+      unsubTaxSummaries();
     };
   }, []);
 

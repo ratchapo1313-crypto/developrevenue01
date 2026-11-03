@@ -126,6 +126,27 @@ export const syncToFirestore = async (key: string, data: any): Promise<void> => 
         persistAllRevenueCategoriesToFirestore(data).catch(() => {});
       });
     }
+
+    // If updating landTax, also update dedicated tax_summaries/land in Firestore
+    if (key === 'landTax' && data) {
+      import('./firebaseDatabase').then(({ persistLandTaxToFirestore }) => {
+        persistLandTaxToFirestore(data).catch(() => {});
+      });
+    }
+
+    // If updating signTax, also update dedicated tax_summaries/sign in Firestore
+    if (key === 'signTax' && data) {
+      import('./firebaseDatabase').then(({ persistSignTaxToFirestore }) => {
+        persistSignTaxToFirestore(data).catch(() => {});
+      });
+    }
+
+    // If updating taxpayers, also update dedicated taxpayers collection in Firestore
+    if (key === 'taxpayers' && Array.isArray(data)) {
+      import('./firebaseDatabase').then(({ persistAllTaxpayersToFirestore }) => {
+        persistAllTaxpayersToFirestore(data).catch(() => {});
+      });
+    }
   } catch (err) {
     console.warn('Firestore write sync error (local storage still preserved):', err);
   }

@@ -1395,7 +1395,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               </div>
 
               {/* Collections Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* 1. App State Collection */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
@@ -1416,7 +1416,27 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Taxpayers Collection */}
+                {/* 2. Tax Summaries Collection (Land & Sign) */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-4 h-4 text-indigo-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">tax_summaries</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-bold">
+                      2 ระบบภาษี (ที่ดิน & ป้าย)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    ระบบติดตามเป้าหมายประมาณการ, ยอดจัดเก็บได้, ยอดลูกหนี้คงค้าง, และการผ่อนชำระ 3 งวดของภาษีที่ดินและภาษีป้าย
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>land (ที่ดิน) • sign (ป้าย)</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+
+                {/* 3. Taxpayers Collection */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1431,12 +1451,12 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                     ตารางทะเบียนผู้เสียภาษีที่ดิน สิ่งปลูกสร้าง และภาษีป้าย พร้อมยอดประเมิน หนี้เก่า และงวดการผ่อนชำระ
                   </p>
                   <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>ภาษีที่ดิน ({taxpayers.filter(t => t.taxType === 'land').length}) • ภาษีป้าย ({taxpayers.filter(t => t.taxType === 'sign').length})</span>
+                    <span>ภาษีที่ดิน ({landCount}) • ภาษีป้าย ({signCount})</span>
                     <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
                   </div>
                 </div>
 
-                {/* 3. Revenue Categories Collection */}
+                {/* 4. Revenue Categories Collection */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">

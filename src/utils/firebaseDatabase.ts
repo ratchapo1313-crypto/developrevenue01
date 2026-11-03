@@ -65,6 +65,32 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
 
     if (!needsCreation) {
       const existing = activeSnap.data();
+      const nowIso = new Date().toISOString();
+
+      // Ensure tax_summaries collection (land and sign) exists in Firestore
+      try {
+        const landSnap = await getDoc(doc(db, 'tax_summaries', 'land'));
+        const signSnap = await getDoc(doc(db, 'tax_summaries', 'sign'));
+        if (!landSnap.exists()) {
+          await setDoc(doc(db, 'tax_summaries', 'land'), {
+            ...(existing?.landTax || INITIAL_LAND_TAX_DATA),
+            id: 'land',
+            taxType: 'land',
+            updatedAt: nowIso,
+          });
+        }
+        if (!signSnap.exists()) {
+          await setDoc(doc(db, 'tax_summaries', 'sign'), {
+            ...(existing?.signTax || INITIAL_SIGN_TAX_DATA),
+            id: 'sign',
+            taxType: 'sign',
+            updatedAt: nowIso,
+          });
+        }
+      } catch (e) {
+        console.warn('Verifying tax_summaries note:', e);
+      }
+
       return {
         success: true,
         isNewlyCreated: false,
@@ -128,7 +154,7 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
       });
     });
 
-    // 3. Seed tax summaries
+    // 3. Seed tax summaries (land and sign)
     const landSummaryRef = doc(db, 'tax_summaries', 'land');
     batch.set(landSummaryRef, {
       ...INITIAL_LAND_TAX_DATA,
@@ -145,9 +171,8 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
       updatedAt: nowIso,
     });
 
-
-    // 4. Seed initial taxpayer records
-    INITIAL_TAXPAYER_RECORDS.slice(0, 30).forEach((tp) => {
+    // 4. Seed full initial taxpayer records
+    INITIAL_TAXPAYER_RECORDS.forEach((tp) => {
       const tpRef = doc(db, 'taxpayers', tp.id);
       batch.set(tpRef, {
         ...tp,
@@ -452,6 +477,305 @@ export function subscribeToRevenueCategoriesFromFirestore(
 }
 
 /**
+ * Persists land tax metrics to Firestore tax_summaries/land and syncs with central active_database
+ */
+export async function persistLandTaxToFirestore(landTax: DetailedTaxData): Promise<boolean> {
+  try {
+    const nowIso = new Date().toISOString();
+    const landRef = doc(db, 'tax_summaries', 'land');
+    await setDoc(landRef, {
+      ...landTax,
+      id: 'land',
+      taxType: 'land',
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+
+    const activeDocRef = doc(db, 'app_state', 'active_database');
+    await setDoc(
+      activeDocRef,
+      {
+        landTax,
+        updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (error) {
+    console.warn('Persist landTax to Firestore failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Persists sign tax metrics to Firestore tax_summaries/sign and syncs with central active_database
+ */
+export async function persistSignTaxToFirestore(signTax: DetailedTaxData): Promise<boolean> {
+  try {
+    const nowIso = new Date().toISOString();
+    const signRef = doc(db, 'tax_summaries', 'sign');
+    await setDoc(signRef, {
+      ...signTax,
+      id: 'sign',
+      taxType: 'sign',
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+
+    const activeDocRef = doc(db, 'app_state', 'active_database');
+    await setDoc(
+      activeDocRef,
+      {
+        signTax,
+        updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (error) {
+    console.warn('Persist signTax to Firestore failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Persists both landTax and signTax tracking metrics to Firestore in a single batch
+ */
+export async function persistTaxSummariesToFirestore(
+  landTax: DetailedTaxData,
+  signTax: DetailedTaxData
+): Promise<boolean> {
+  try {
+    const nowIso = new Date().toISOString();
+    const batch = writeBatch(db);
+
+    const landRef = doc(db, 'tax_summaries', 'land');
+    batch.set(landRef, {
+      ...landTax,
+      id: 'land',
+      taxType: 'land',
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+
+    const signRef = doc(db, 'tax_summaries', 'sign');
+    batch.set(signRef, {
+      ...signTax,
+      id: 'sign',
+      taxType: 'sign',
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+
+    const activeDocRef = doc(db, 'app_state', 'active_database');
+    batch.set(
+      activeDocRef,
+      {
+        landTax,
+        signTax,
+        updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.error('Persist tax summaries to Firestore failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Persists all taxpayer records to Firestore taxpayers collection in batches of 400
+ */
+export async function persistAllTaxpayersToFirestore(
+  taxpayers: TaxpayerRecord[]
+): Promise<{ success: boolean; count: number; error?: string }> {
+  try {
+    const nowIso = new Date().toISOString();
+    const CHUNK_SIZE = 400; // Firestore limit per batch is 500
+
+    for (let i = 0; i < taxpayers.length; i += CHUNK_SIZE) {
+      const chunk = taxpayers.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+      for (const tp of chunk) {
+        if (!tp.id) continue;
+        const tpRef = doc(db, 'taxpayers', tp.id);
+        batch.set(tpRef, {
+          ...tp,
+          updatedAt: tp.updatedAt || nowIso,
+        });
+      }
+      await batch.commit();
+    }
+
+    // Also update central active_database
+    const activeDocRef = doc(db, 'app_state', 'active_database');
+    await setDoc(
+      activeDocRef,
+      {
+        taxpayers,
+        updatedAt: nowIso,
+        lastUpdatedBy: CURRENT_TAB_ID,
+      },
+      { merge: true }
+    );
+
+    return { success: true, count: taxpayers.length };
+  } catch (error) {
+    console.error('Batch persist taxpayers to Firestore failed:', error);
+    return {
+      success: false,
+      count: 0,
+      error: error instanceof Error ? error.message : 'Unknown Firestore taxpayer batch error',
+    };
+  }
+}
+
+/**
+ * Fetches tax summaries (land & sign) directly from Firestore
+ */
+export async function fetchTaxSummariesFromFirestore(): Promise<{
+  landTax?: DetailedTaxData;
+  signTax?: DetailedTaxData;
+} | null> {
+  try {
+    const landSnap = await getDoc(doc(db, 'tax_summaries', 'land'));
+    const signSnap = await getDoc(doc(db, 'tax_summaries', 'sign'));
+
+    const result: { landTax?: DetailedTaxData; signTax?: DetailedTaxData } = {};
+    if (landSnap.exists()) {
+      result.landTax = landSnap.data() as DetailedTaxData;
+    }
+    if (signSnap.exists()) {
+      result.signTax = signSnap.data() as DetailedTaxData;
+    }
+
+    return Object.keys(result).length > 0 ? result : null;
+  } catch (error) {
+    console.warn('Fetch tax summaries from Firestore failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Real-time listener for the tax_summaries Firestore collection
+ */
+export function subscribeToTaxSummariesFromFirestore(
+  callback: (data: { landTax?: DetailedTaxData; signTax?: DetailedTaxData }) => void
+): () => void {
+  try {
+    const colRef = collection(db, 'tax_summaries');
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        let landTax: DetailedTaxData | undefined;
+        let signTax: DetailedTaxData | undefined;
+
+        snapshot.forEach((d) => {
+          const docData = d.data();
+          if (d.id === 'land' || docData.taxType === 'land') {
+            landTax = {
+              estimateCount: docData.estimateCount,
+              estimateAmount: docData.estimateAmount,
+              collected: docData.collected,
+              taxpayers: docData.taxpayers,
+              debtors: docData.debtors,
+              pendingVerification: docData.pendingVerification,
+              updatedAt: docData.updatedAt,
+            };
+          } else if (d.id === 'sign' || docData.taxType === 'sign') {
+            signTax = {
+              estimateCount: docData.estimateCount,
+              estimateAmount: docData.estimateAmount,
+              collected: docData.collected,
+              taxpayers: docData.taxpayers,
+              debtors: docData.debtors,
+              pendingVerification: docData.pendingVerification,
+              updatedAt: docData.updatedAt,
+            };
+          }
+        });
+
+        if (landTax || signTax) {
+          callback({ landTax, signTax });
+        }
+      },
+      (error) => {
+        console.warn('Tax summaries Firestore listener note:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (e) {
+    console.warn('Could not initialize tax_summaries Firestore listener:', e);
+    return () => {};
+  }
+}
+
+/**
+ * Real-time listener for taxpayers collection
+ */
+export function subscribeToTaxpayersCollectionFromFirestore(
+  callback: (taxpayers: TaxpayerRecord[]) => void
+): () => void {
+  try {
+    const colRef = collection(db, 'taxpayers');
+    const unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const list: TaxpayerRecord[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data();
+            if (data && data.name && data.taxType) {
+              list.push({
+                id: d.id,
+                name: data.name,
+                taxType: data.taxType,
+                assessedAmount: data.assessedAmount ?? 0,
+                reliefAmount: data.reliefAmount ?? 0,
+                afterReliefAmount: data.afterReliefAmount ?? 0,
+                status: data.status ?? 0,
+                payment1: data.payment1 ?? 0,
+                payment2: data.payment2 ?? 0,
+                payment3: data.payment3 ?? 0,
+                remainingBalance: data.remainingBalance ?? 0,
+                isFullyPaid: Boolean(data.isFullyPaid),
+                isPendingVerification: Boolean(data.isPendingVerification),
+                hasOldDebt: Boolean(data.hasOldDebt),
+                oldDebtAmount: data.oldDebtAmount ?? 0,
+                oldDebtStatus: data.oldDebtStatus ?? 0,
+                oldDebtPaid: data.oldDebtPaid ?? 0,
+                oldDebtRemaining: data.oldDebtRemaining ?? 0,
+                penaltyAmount: data.penaltyAmount ?? 0,
+                surchargeAmount: data.surchargeAmount ?? 0,
+                notes: data.notes ?? '',
+                updatedAt: data.updatedAt,
+              });
+            }
+          });
+
+          if (list.length > 0) {
+            callback(list);
+          }
+        }
+      },
+      (error) => {
+        console.warn('Taxpayers collection Firestore snapshot note:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (e) {
+    console.warn('Could not initialize taxpayers Firestore listener:', e);
+    return () => {};
+  }
+}
+
+/**
  * Fetches the count of documents across Firestore collections for diagnostic stats
  */
 export async function getFirestoreStats(): Promise<{
@@ -460,6 +784,9 @@ export async function getFirestoreStats(): Promise<{
   taxpayersCount: number;
   dailyRecordsCount: number;
   categoriesCount: number;
+  taxSummariesCount: number;
+  landTaxpayersCount: number;
+  signTaxpayersCount: number;
   lastUpdated: string | null;
 }> {
   try {
@@ -467,19 +794,35 @@ export async function getFirestoreStats(): Promise<{
     const snap = await getDoc(activeDocRef);
 
     let taxpayersCount = 0;
+    let landTaxpayersCount = 0;
+    let signTaxpayersCount = 0;
     let dailyRecordsCount = 0;
     let categoriesCount = 8;
+    let taxSummariesCount = 2;
     let lastUpdated: string | null = null;
 
     if (snap.exists()) {
       const data = snap.data();
-      taxpayersCount = Array.isArray(data.taxpayers) ? data.taxpayers.length : 0;
+      if (Array.isArray(data.taxpayers)) {
+        taxpayersCount = data.taxpayers.length;
+        landTaxpayersCount = data.taxpayers.filter((t: any) => t.taxType === 'land').length;
+        signTaxpayersCount = data.taxpayers.filter((t: any) => t.taxType === 'sign').length;
+      }
       dailyRecordsCount = Array.isArray(data.dailyRecords) ? data.dailyRecords.length : 0;
       categoriesCount = Array.isArray(data.categories) ? data.categories.length : 8;
       lastUpdated = data.updatedAt || null;
     } else {
       const tpSnap = await getDocs(collection(db, 'taxpayers'));
       taxpayersCount = tpSnap.size;
+    }
+
+    try {
+      const taxSumSnap = await getDocs(collection(db, 'tax_summaries'));
+      if (!taxSumSnap.empty) {
+        taxSummariesCount = taxSumSnap.size;
+      }
+    } catch {
+      // fallback
     }
 
     try {
@@ -497,6 +840,9 @@ export async function getFirestoreStats(): Promise<{
       taxpayersCount,
       dailyRecordsCount,
       categoriesCount,
+      taxSummariesCount,
+      landTaxpayersCount,
+      signTaxpayersCount,
       lastUpdated,
     };
   } catch {
@@ -506,6 +852,9 @@ export async function getFirestoreStats(): Promise<{
       taxpayersCount: 0,
       dailyRecordsCount: 0,
       categoriesCount: 0,
+      taxSummariesCount: 0,
+      landTaxpayersCount: 0,
+      signTaxpayersCount: 0,
       lastUpdated: null,
     };
   }

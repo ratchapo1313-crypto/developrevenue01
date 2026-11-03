@@ -40,7 +40,7 @@ service cloud.firestore {
     match /taxpayers/{taxpayerId} {
       allow read: if true;
       allow create, update: if isValidId(taxpayerId) && (
-        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 200 &&
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 500 &&
         incoming().taxType in ['land', 'sign']
       );
       allow delete: if true;
@@ -66,12 +66,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Tax summaries (land and sign)
+    // Tax summaries (land and sign tracking metrics)
     match /tax_summaries/{taxType} {
       allow read: if true;
-      allow create, update: if isValidId(taxType) && (
-        incoming().taxType in ['land', 'sign']
-      );
+      allow create, update: if isValidId(taxType) && taxType in ['land', 'sign'];
       allow delete: if isAdmin();
     }
 

@@ -21,6 +21,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Database,
+  Zap,
 } from 'lucide-react';
 import {
   DetailedTaxData,
@@ -34,6 +36,10 @@ import {
   formatNumber,
   exportTaxpayersToExcel,
 } from '../utils/excel';
+import {
+  persistTaxSummariesToFirestore,
+  persistAllTaxpayersToFirestore,
+} from '../utils/firebaseDatabase';
 
 interface PropertyTaxSectionProps {
   landTax: DetailedTaxData;
@@ -64,6 +70,27 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Firebase Manual Sync State & Notification
+  const [isFirebaseSyncing, setIsFirebaseSyncing] = useState<boolean>(false);
+  const [firebaseFeedback, setFirebaseFeedback] = useState<string | null>(null);
+
+  const handleManualFirebaseSync = async () => {
+    setIsFirebaseSyncing(true);
+    setFirebaseFeedback(null);
+    try {
+      const p1 = persistTaxSummariesToFirestore(landTax, signTax);
+      const p2 = persistAllTaxpayersToFirestore(taxpayers);
+      await Promise.all([p1, p2]);
+      setFirebaseFeedback('ซิงค์ข้อมูลระบบติดตามภาษีที่ดินและภาษีป้ายสู่ Firebase สำเร็จแล้ว');
+      setTimeout(() => setFirebaseFeedback(null), 4000);
+    } catch (e: any) {
+      setFirebaseFeedback(`ซิงค์ไม่สำเร็จ: ${e.message || String(e)}`);
+      setTimeout(() => setFirebaseFeedback(null), 4000);
+    } finally {
+      setIsFirebaseSyncing(false);
+    }
+  };
 
   // Modal: Add / Edit Taxpayer Record (Unified for both 2570 Tax and Old Debt by same name)
   const [isTaxpayerModalOpen, setIsTaxpayerModalOpen] = useState(false);
@@ -646,7 +673,47 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
         </div>
       </div>
 
-      {/* SECTION 1: Summary Cards Grid (6 KPI Metrics) */}
+      {/* Firebase Cloud Database Status Banner */}
+      <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white rounded-2xl border border-indigo-700/50 shadow-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-sm">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-sm text-white">
+                  ฐานข้อมูล Firebase: databaserevenuecollection
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center space-x-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>เชื่อมต่อสำเร็จ • ซิงค์สด 2-Way</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                ระบบติดตามผลการจัดเก็บภาษีที่ดินและสิ่งปลูกสร้าง และภาษีป้าย จัดเก็บลงคอลเลกชัน <span className="font-mono text-amber-300 font-semibold">tax_summaries</span> (land & sign) และ <span className="font-mono text-amber-300 font-semibold">taxpayers</span> (รวม {taxpayers.length} ราย) อัตโนมัติ
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {firebaseFeedback && (
+              <span className="text-xs text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-medium animate-in fade-in shadow-xs">
+                {firebaseFeedback}
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={isFirebaseSyncing}
+              onClick={handleManualFirebaseSync}
+              className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all flex items-center space-x-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              <Zap className={`w-3.5 h-3.5 ${isFirebaseSyncing ? 'animate-spin' : ''}`} />
+              <span>{isFirebaseSyncing ? 'กำลังบันทึกลง Firebase...' : 'ซิงค์ฐานข้อมูลภาษีสู่ Firebase ทันที'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Card 1: ประมาณการ */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs relative overflow-hidden group">
