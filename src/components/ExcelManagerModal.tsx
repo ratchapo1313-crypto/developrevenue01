@@ -178,6 +178,29 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     [taxpayers]
   );
 
+  // Official Tax Tracking Metrics from PropertyTaxSection (ระบบติดตามผลการจัดเก็บภาษีที่ดินและสิ่งปลูกสร้าง และภาษีป้าย)
+  const landEstimate = landTax.estimateAmount || 0;
+  const landCollectedAmount = landTax.collected?.amount || 0;
+  const landCollectedCount = landTax.collected?.count || 0;
+  const landPercent = landEstimate > 0 ? (landCollectedAmount / landEstimate) * 100 : 0;
+  const landOfficialTaxpayersCount = landTax.taxpayers?.count || 0;
+  const landOfficialTaxpayersAmount = landTax.taxpayers?.amount || 0;
+  const landDebtorsCount = landTax.debtors?.count || 0;
+  const landDebtorsAmount = landTax.debtors?.amount || 0;
+  const landPendingCount = landTax.pendingVerification?.count || 0;
+  const landPendingAmount = landTax.pendingVerification?.amount || 0;
+
+  const signEstimate = signTax.estimateAmount || 0;
+  const signCollectedAmount = signTax.collected?.amount || 0;
+  const signCollectedCount = signTax.collected?.count || 0;
+  const signPercent = signEstimate > 0 ? (signCollectedAmount / signEstimate) * 100 : 0;
+  const signOfficialTaxpayersCount = signTax.taxpayers?.count || 0;
+  const signOfficialTaxpayersAmount = signTax.taxpayers?.amount || 0;
+  const signDebtorsCount = signTax.debtors?.count || 0;
+  const signDebtorsAmount = signTax.debtors?.amount || 0;
+  const signPendingCount = signTax.pendingVerification?.count || 0;
+  const signPendingAmount = signTax.pendingVerification?.amount || 0;
+
   // Land Tax live numbers
   const landCount = landTaxpayers.length;
   const landAssessedTotal = useMemo(
@@ -558,53 +581,115 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-2.5 pt-2.5 border-t border-slate-800 text-[11px]">
             {/* Land tax summary */}
-            <div className="bg-slate-800/80 p-2 rounded-xl border border-blue-500/30">
-              <div className="text-blue-300 font-bold flex items-center space-x-1">
-                <Landmark className="w-3 h-3" />
-                <span>ภาษีที่ดินฯ</span>
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-blue-500/30">
+              <div className="flex items-center justify-between">
+                <div className="text-blue-300 font-bold flex items-center space-x-1">
+                  <Landmark className="w-3.5 h-3.5" />
+                  <span>ภาษีที่ดินและสิ่งปลูกสร้าง</span>
+                </div>
+                <span className="text-[10px] text-blue-200 bg-blue-900/60 px-1.5 py-0.5 rounded font-medium">
+                  {landPercent.toFixed(2)}%
+                </span>
               </div>
-              <div className="mt-1 text-slate-200">
-                ผู้เสียภาษี: <span className="font-semibold text-white">{formatNumber(landCount)}</span> ราย
-              </div>
-              <div className="text-emerald-400 font-medium">
-                รับจริง: {formatCurrency(landPaidTotal)} บ.
-              </div>
-              <div className="text-rose-300">
-                หนี้ค้างรวม: {formatCurrency(landDebtorsCombinedAmount)} บ.
+              <div className="mt-1.5 space-y-0.5 text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ประมาณการ:</span>
+                  <span className="font-semibold text-white">{formatCurrency(landEstimate)} บ.</span>
+                </div>
+                <div className="flex justify-between text-emerald-400">
+                  <span>รับจริง:</span>
+                  <span className="font-bold">{formatCurrency(landCollectedAmount)} บ. ({formatNumber(landCollectedCount)} ราย)</span>
+                </div>
+                <div className="flex justify-between text-blue-200">
+                  <span>ผู้มีหน้าที่เสียภาษี:</span>
+                  <span>{formatNumber(landOfficialTaxpayersCount)} ราย ({formatCurrency(landOfficialTaxpayersAmount)} บ.)</span>
+                </div>
+                <div className="flex justify-between text-rose-300 pt-0.5 border-t border-slate-700/60">
+                  <span>ตั้งลูกหนี้:</span>
+                  <span>{formatNumber(landDebtorsCount)} ราย ({formatCurrency(landDebtorsAmount)} บ.)</span>
+                </div>
+                <div className="flex justify-between text-amber-200/90 text-[10px]">
+                  <span>อยู่ระหว่างตรวจสอบ:</span>
+                  <span>{formatNumber(landPendingCount)} ราย ({formatCurrency(landPendingAmount)} บ.)</span>
+                </div>
+                <div className="flex justify-between text-slate-400 text-[10px] pt-0.5 border-t border-slate-700/60">
+                  <span>ทะเบียนคุมในระบบ:</span>
+                  <span>{formatNumber(landCount)} ราย (ลูกหนี้เก่า {formatNumber(landOldDebtors.length)} ราย)</span>
+                </div>
               </div>
             </div>
 
             {/* Sign tax summary */}
-            <div className="bg-slate-800/80 p-2 rounded-xl border border-amber-500/30">
-              <div className="text-amber-300 font-bold flex items-center space-x-1">
-                <Receipt className="w-3 h-3" />
-                <span>ภาษีป้าย</span>
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-amber-500/30">
+              <div className="flex items-center justify-between">
+                <div className="text-amber-300 font-bold flex items-center space-x-1">
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>ภาษีป้าย</span>
+                </div>
+                <span className="text-[10px] text-amber-200 bg-amber-900/60 px-1.5 py-0.5 rounded font-medium">
+                  {signPercent.toFixed(2)}%
+                </span>
               </div>
-              <div className="mt-1 text-slate-200">
-                ผู้เสียภาษี: <span className="font-semibold text-white">{formatNumber(signCount)}</span> ราย
-              </div>
-              <div className="text-emerald-400 font-medium">
-                รับจริง: {formatCurrency(signPaidTotal)} บ.
-              </div>
-              <div className="text-rose-300">
-                หนี้ค้างรวม: {formatCurrency(signDebtorsCombinedAmount)} บ.
+              <div className="mt-1.5 space-y-0.5 text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ประมาณการ:</span>
+                  <span className="font-semibold text-white">{formatCurrency(signEstimate)} บ.</span>
+                </div>
+                <div className="flex justify-between text-emerald-400">
+                  <span>รับจริง:</span>
+                  <span className="font-bold">{formatCurrency(signCollectedAmount)} บ. ({formatNumber(signCollectedCount)} ราย)</span>
+                </div>
+                <div className="flex justify-between text-amber-200">
+                  <span>ผู้มีหน้าที่เสียภาษี:</span>
+                  <span>{formatNumber(signOfficialTaxpayersCount)} ราย ({formatCurrency(signOfficialTaxpayersAmount)} บ.)</span>
+                </div>
+                <div className="flex justify-between text-rose-300 pt-0.5 border-t border-slate-700/60">
+                  <span>ตั้งลูกหนี้:</span>
+                  <span>{formatNumber(signDebtorsCount)} ราย ({formatCurrency(signDebtorsAmount)} บ.)</span>
+                </div>
+                <div className="flex justify-between text-amber-200/90 text-[10px]">
+                  <span>อยู่ระหว่างตรวจสอบ:</span>
+                  <span>{formatNumber(signPendingCount)} ราย ({formatCurrency(signPendingAmount)} บ.)</span>
+                </div>
+                <div className="flex justify-between text-slate-400 text-[10px] pt-0.5 border-t border-slate-700/60">
+                  <span>ทะเบียนคุมในระบบ:</span>
+                  <span>{formatNumber(signCount)} ราย (ลูกหนี้เก่า {formatNumber(signOldDebtors.length)} ราย)</span>
+                </div>
               </div>
             </div>
 
             {/* 8 Budget Categories summary */}
-            <div className="bg-slate-800/80 p-2 rounded-xl border border-indigo-500/30">
-              <div className="text-indigo-300 font-bold flex items-center space-x-1">
-                <Layers className="w-3 h-3" />
-                <span>8 หมวดรายได้</span>
+            <div className="bg-slate-800/80 p-2.5 rounded-xl border border-indigo-500/30">
+              <div className="flex items-center justify-between">
+                <div className="text-indigo-300 font-bold flex items-center space-x-1">
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>8 หมวดรายได้ (งบประมาณ)</span>
+                </div>
+                <span className="text-[10px] text-indigo-200 bg-indigo-900/60 px-1.5 py-0.5 rounded font-medium">
+                  {totalBudgetPercent.toFixed(2)}%
+                </span>
               </div>
-              <div className="mt-1 text-slate-200">
-                ประมาณการ: {formatCurrency(totalBudgetEstimate)} บ.
-              </div>
-              <div className="text-emerald-400 font-medium">
-                รับจริง: {formatCurrency(totalBudgetActual)} บ.
-              </div>
-              <div className="text-amber-300 font-semibold">
-                จัดเก็บได้: {totalBudgetPercent.toFixed(2)}%
+              <div className="mt-1.5 space-y-0.5 text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ประมาณการรวม:</span>
+                  <span className="font-semibold text-white">{formatCurrency(totalBudgetEstimate)} บ.</span>
+                </div>
+                <div className="flex justify-between text-emerald-400">
+                  <span>รับจริงรวม:</span>
+                  <span className="font-bold">{formatCurrency(totalBudgetActual)} บ.</span>
+                </div>
+                <div className="flex justify-between text-amber-300">
+                  <span>ผลการจัดเก็บ:</span>
+                  <span>{totalBudgetPercent.toFixed(2)}%</span>
+                </div>
+                <div className="flex justify-between text-slate-400 pt-0.5 border-t border-slate-700/60 text-[10px]">
+                  <span>จำนวนหมวดงบประมาณ:</span>
+                  <span>{categories.length} หมวด ({categories.reduce((s, c) => s + c.items.length, 0)} รายการ)</span>
+                </div>
+                <div className="flex justify-between text-emerald-300/90 text-[10px]">
+                  <span>สถานะการบันทึก:</span>
+                  <span>ตรงตามข้อบัญญัติงบประมาณ</span>
+                </div>
               </div>
             </div>
           </div>
@@ -684,14 +769,14 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                       </h4>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">
-                      ครบถ้วนทุกชีต: สรุปภาพรวมรายได้ 8 หมวด, ภาษีที่ดินและสิ่งปลูกสร้าง ({formatNumber(landCount)} ราย) และภาษีป้าย ({formatNumber(signCount)} ราย)
+                      ครบถ้วนทุกชีต: สรุปภาพรวมรายได้ 8 หมวด, ระบบติดตามผลการจัดเก็บภาษีที่ดินและสิ่งปลูกสร้าง ({formatNumber(landOfficialTaxpayersCount)} ราย) และภาษีป้าย ({formatNumber(signOfficialTaxpayersCount)} ราย)
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                       <span className="bg-white border border-emerald-200 px-2 py-0.5 rounded-md text-emerald-800 font-medium">
-                        ภาษีที่ดิน: {formatNumber(landCount)} ราย (รับจริง {formatCurrency(landPaidTotal)} บ.)
+                        ภาษีที่ดินฯ: เป้าหมาย {formatCurrency(landEstimate)} บ. (รับจริง {formatCurrency(landCollectedAmount)} บ. • {formatNumber(landCollectedCount)} ราย)
                       </span>
                       <span className="bg-white border border-emerald-200 px-2 py-0.5 rounded-md text-emerald-800 font-medium">
-                        ภาษีป้าย: {formatNumber(signCount)} ราย (รับจริง {formatCurrency(signPaidTotal)} บ.)
+                        ภาษีป้าย: เป้าหมาย {formatCurrency(signEstimate)} บ. (รับจริง {formatCurrency(signCollectedAmount)} บ. • {formatNumber(signCollectedCount)} ราย)
                       </span>
                     </div>
                   </div>
@@ -714,20 +799,26 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                       <span>2. รายชื่อผู้เสียภาษีและลูกหนี้ภาษีเก่า (ภาษีที่ดินและสิ่งปลูกสร้าง) (.xlsx)</span>
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      ทะเบียนคุมรายชื่อผู้เสียภาษีที่ดินฯ ปี 2570 พร้อมข้อมูลลูกหนี้ภาษีเก่า (ยอดประเมิน, บรรเทา, หลังบรรเทา, ชำระ 2570, คงเหลือ 2570, ยอดหนี้เก่า, ชำระหนี้เก่า, เบี้ยปรับ+เงินเพิ่ม, คงเหลือหนี้เก่า, ยอดรับจริง และรวมคงเหลือทั้งสิ้น)
+                      ระบบติดตามผลการจัดเก็บภาษีที่ดินและสิ่งปลูกสร้าง ปี 2570 พร้อมข้อมูลลูกหนี้ภาษีเก่า ตรงตามระบบติดตามผลการจัดเก็บ (ประมาณการ, รับจริง, ผู้มีหน้าที่เสียภาษี, ตั้งลูกหนี้, และอยู่ระหว่างตรวจสอบ)
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                      <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-blue-900 font-semibold">
-                        ปัจจุบันมี: {formatNumber(landCount)} ราย
+                      <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-slate-700">
+                        ประมาณการ: <strong className="text-slate-900">{formatCurrency(landEstimate)}</strong> บ.
                       </span>
                       <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-emerald-700 font-semibold">
-                        รับชำระจริง: {formatCurrency(landPaidTotal)} บ.
+                        รับจริง: {formatCurrency(landCollectedAmount)} บ. ({formatNumber(landCollectedCount)} ราย • {landPercent.toFixed(2)}%)
+                      </span>
+                      <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-blue-900 font-semibold">
+                        ผู้มีหน้าที่เสียภาษี: {formatNumber(landOfficialTaxpayersCount)} ราย ({formatCurrency(landOfficialTaxpayersAmount)} บ.)
                       </span>
                       <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-rose-700 font-semibold">
-                        หนี้คงค้างรวม: {formatCurrency(landDebtorsCombinedAmount)} บ.
+                        ตั้งลูกหนี้: {formatNumber(landDebtorsCount)} ราย ({formatCurrency(landDebtorsAmount)} บ.)
                       </span>
-                      <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-slate-700">
-                        ลูกหนี้เก่า: {formatNumber(landOldDebtors.length)} ราย
+                      <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-amber-800 font-medium">
+                        อยู่ระหว่างตรวจสอบ: {formatNumber(landPendingCount)} ราย ({formatCurrency(landPendingAmount)} บ.)
+                      </span>
+                      <span className="bg-white border border-blue-200 px-2 py-0.5 rounded-md text-slate-600">
+                        ทะเบียนคุม: {formatNumber(landCount)} ราย (ลูกหนี้เก่า {formatNumber(landOldDebtors.length)} ราย)
                       </span>
                     </div>
                   </div>
@@ -750,20 +841,26 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                       <span>3. รายชื่อผู้เสียภาษีและลูกหนี้ภาษีเก่า (ภาษีป้าย) (.xlsx)</span>
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      ทะเบียนคุมรายชื่อผู้เสียภาษีป้าย ปี 2570 พร้อมข้อมูลลูกหนี้ภาษีเก่า (ยอดประเมิน, บรรเทา, หลังบรรเทา, ชำระ 2570, คงเหลือ 2570, ยอดหนี้เก่า, ชำระหนี้เก่า, เบี้ยปรับ+เงินเพิ่ม, คงเหลือหนี้เก่า, ยอดรับจริง และรวมคงเหลือทั้งสิ้น)
+                      ระบบติดตามผลการจัดเก็บภาษีป้าย ปี 2570 พร้อมข้อมูลลูกหนี้ภาษีเก่า ตรงตามระบบติดตามผลการจัดเก็บ (ประมาณการ, รับจริง, ผู้มีหน้าที่เสียภาษี, ตั้งลูกหนี้, และอยู่ระหว่างตรวจสอบ)
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                      <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-amber-900 font-semibold">
-                        ปัจจุบันมี: {formatNumber(signCount)} ราย
+                      <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-slate-700">
+                        ประมาณการ: <strong className="text-slate-900">{formatCurrency(signEstimate)}</strong> บ.
                       </span>
                       <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-emerald-700 font-semibold">
-                        รับชำระจริง: {formatCurrency(signPaidTotal)} บ.
+                        รับจริง: {formatCurrency(signCollectedAmount)} บ. ({formatNumber(signCollectedCount)} ราย • {signPercent.toFixed(2)}%)
+                      </span>
+                      <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-amber-900 font-semibold">
+                        ผู้มีหน้าที่เสียภาษี: {formatNumber(signOfficialTaxpayersCount)} ราย ({formatCurrency(signOfficialTaxpayersAmount)} บ.)
                       </span>
                       <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-rose-700 font-semibold">
-                        หนี้คงค้างรวม: {formatCurrency(signDebtorsCombinedAmount)} บ.
+                        ตั้งลูกหนี้: {formatNumber(signDebtorsCount)} ราย ({formatCurrency(signDebtorsAmount)} บ.)
                       </span>
-                      <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-slate-700">
-                        ลูกหนี้เก่า: {formatNumber(signOldDebtors.length)} ราย
+                      <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-amber-800 font-medium">
+                        อยู่ระหว่างตรวจสอบ: {formatNumber(signPendingCount)} ราย ({formatCurrency(signPendingAmount)} บ.)
+                      </span>
+                      <span className="bg-white border border-amber-200 px-2 py-0.5 rounded-md text-slate-600">
+                        ทะเบียนคุม: {formatNumber(signCount)} ราย (ลูกหนี้เก่า {formatNumber(signOldDebtors.length)} ราย)
                       </span>
                     </div>
                   </div>
@@ -786,10 +883,24 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                       <span>4. ดาวน์โหลดระบบติดตามภาพรวมภาษีที่ดินและสิ่งปลูกสร้าง และภาษีป้าย (.xlsx)</span>
                     </h4>
                     <p className="text-xs text-slate-600 mt-1">
-                      ประกอบด้วยสรุปภาพรวมเปรียบเทียบประมาณการ/รับจริง/ลูกหนี้ และทะเบียนคุมรายชื่อผู้เสียภาษีของทั้ง 2 ภาษี (รวม {formatNumber(landCount + signCount)} ราย)
+                      สรุปภาพรวมเปรียบเทียบประมาณการ รับจริง ผู้มีหน้าที่เสียภาษี ตั้งลูกหนี้ และทะเบียนคุมรายชื่อผู้เสียภาษีของทั้ง 2 ภาษี ตรงตามระบบติดตามผลการจัดเก็บ
                     </p>
-                    <div className="mt-2 text-[11px] text-indigo-900 font-medium">
-                      รวมยอดจัดเก็บได้จริงทั้งสองภาษี: {formatCurrency(landPaidTotal + signPaidTotal)} บาท
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                      <span className="bg-white border border-indigo-200 px-2 py-0.5 rounded-md text-slate-800 font-medium">
+                        ประมาณการรวม: <strong className="text-indigo-950">{formatCurrency(landEstimate + signEstimate)}</strong> บาท
+                      </span>
+                      <span className="bg-white border border-indigo-200 px-2 py-0.5 rounded-md text-emerald-700 font-semibold">
+                        จัดเก็บได้จริงรวม: {formatCurrency(landCollectedAmount + signCollectedAmount)} บาท ({formatNumber(landCollectedCount + signCollectedCount)} ราย)
+                      </span>
+                      <span className="bg-white border border-indigo-200 px-2 py-0.5 rounded-md text-blue-900 font-semibold">
+                        ผู้มีหน้าที่เสียภาษีรวม: {formatNumber(landOfficialTaxpayersCount + signOfficialTaxpayersCount)} ราย
+                      </span>
+                      <span className="bg-white border border-indigo-200 px-2 py-0.5 rounded-md text-rose-700 font-medium">
+                        ตั้งลูกหนี้รวม: {formatNumber(landDebtorsCount + signDebtorsCount)} ราย ({formatCurrency(landDebtorsAmount + signDebtorsAmount)} บ.)
+                      </span>
+                      <span className="bg-white border border-indigo-200 px-2 py-0.5 rounded-md text-amber-800 font-medium">
+                        อยู่ระหว่างตรวจสอบรวม: {formatNumber(landPendingCount + signPendingCount)} ราย
+                      </span>
                     </div>
                   </div>
                   <button
@@ -894,11 +1005,11 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                         </span>
                       </div>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 font-semibold">
-                        {landCount} ราย
+                        {formatNumber(landOfficialTaxpayersCount)} ราย
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-2">
-                      รายชื่อผู้เสียภาษีที่ดินฯ ปี 2570 และลูกหนี้ภาษีเก่า
+                      เป้าหมาย {formatCurrency(landEstimate)} บ. • รับจริง {formatCurrency(landCollectedAmount)} บ. (ในระบบทะเบียน {formatNumber(landCount)} ราย)
                     </p>
                   </div>
 
@@ -921,11 +1032,11 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                         </span>
                       </div>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold">
-                        {signCount} ราย
+                        {formatNumber(signOfficialTaxpayersCount)} ราย
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-2">
-                      รายชื่อผู้เสียภาษีป้าย ปี 2570 และลูกหนี้ภาษีเก่า
+                      เป้าหมาย {formatCurrency(signEstimate)} บ. • รับจริง {formatCurrency(signCollectedAmount)} บ. (ในระบบทะเบียน {formatNumber(signCount)} ราย)
                     </p>
                   </div>
 
@@ -1430,9 +1541,15 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   <p className="text-[11px] text-slate-600 mt-1">
                     ระบบติดตามเป้าหมายประมาณการ, ยอดจัดเก็บได้, ยอดลูกหนี้คงค้าง, และการผ่อนชำระ 3 งวดของภาษีที่ดินและภาษีป้าย
                   </p>
-                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>land (ที่ดิน) • sign (ป้าย)</span>
-                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  <div className="mt-2 text-[10px] text-slate-500 flex flex-col gap-1 pt-1 border-t border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <span>ที่ดินฯ: เป้าหมาย {formatCurrency(landEstimate)} บ. • รับจริง {formatCurrency(landCollectedAmount)} บ. ({formatNumber(landCollectedCount)} ราย)</span>
+                      <span className="text-emerald-600 font-semibold shrink-0 ml-1">จัดเก็บแล้ว</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>ป้าย: เป้าหมาย {formatCurrency(signEstimate)} บ. • รับจริง {formatCurrency(signCollectedAmount)} บ. ({formatNumber(signCollectedCount)} ราย)</span>
+                      <span className="text-emerald-600 font-semibold shrink-0 ml-1">จัดเก็บแล้ว</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1451,7 +1568,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                     ตารางทะเบียนผู้เสียภาษีที่ดิน สิ่งปลูกสร้าง และภาษีป้าย พร้อมยอดประเมิน หนี้เก่า และงวดการผ่อนชำระ
                   </p>
                   <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>ภาษีที่ดิน ({landCount}) • ภาษีป้าย ({signCount})</span>
+                    <span>ภาษีที่ดิน ({formatNumber(landCount)} ราย) • ภาษีป้าย ({formatNumber(signCount)} ราย) • ลูกหนี้เก่า ({formatNumber(landOldDebtors.length + signOldDebtors.length)} ราย)</span>
                     <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
                   </div>
                 </div>
