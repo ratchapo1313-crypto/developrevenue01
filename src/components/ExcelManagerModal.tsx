@@ -22,6 +22,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { bootstrapFirestoreDatabase, getFirestoreStats } from '../utils/firebaseDatabase';
+import { firebaseProjectId } from '../firebase';
 
 import {
   RevenueCategory,
@@ -99,6 +100,12 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     taxpayersCount: number;
     dailyRecordsCount: number;
     categoriesCount: number;
+    taxSummariesCount: number;
+    oldTaxDebtorsCount: number;
+    marketContractsCount: number;
+    marketSummariesCount: number;
+    memorandumsCount: number;
+    overviewMetricsCount: number;
     lastUpdated: string | null;
   }>({
     connected: true,
@@ -106,6 +113,12 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     taxpayersCount: taxpayers.length,
     dailyRecordsCount: dailyRecords.length,
     categoriesCount: categories.length,
+    taxSummariesCount: 2,
+    oldTaxDebtorsCount: 0,
+    marketContractsCount: 0,
+    marketSummariesCount: 2,
+    memorandumsCount: 1,
+    overviewMetricsCount: 1,
     lastUpdated: null,
   });
 
@@ -1492,11 +1505,11 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Firebase Project:</span>
-                    <span className="font-mono text-slate-200">logical-cache-2w2pc</span>
+                    <span className="font-mono text-emerald-300 font-bold">{firebaseProjectId}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">โหมดการซิงค์:</span>
-                    <span className="text-emerald-400 font-semibold">อัตโนมัติแบบเรียลไทม์ (2-Way)</span>
+                    <span className="text-slate-400 block text-[10px]">โหมดการจัดเก็บ:</span>
+                    <span className="text-emerald-400 font-semibold">สร้างฐานข้อมูลครบทุกเมนู (Auto)</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">ผู้ดูแลระบบ / สิทธิ์:</span>
@@ -1505,75 +1518,29 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 </div>
               </div>
 
-              {/* Collections Cards */}
+              {/* Collections Cards - ครบทุกเมนู 100% */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* 1. App State Collection */}
+                {/* เมนูที่ 1: ภาพรวมรายได้ */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Server className="w-4 h-4 text-blue-600" />
-                      <span className="font-bold text-xs text-slate-900 font-mono">app_state / active_database</span>
+                      <span className="font-bold text-xs text-slate-900 font-mono">overview_metrics & app_state</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-semibold">
-                      ฐานข้อมูลส่วนกลาง
+                    <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 text-[10px] font-bold">
+                      เมนู 1: ภาพรวมรายได้
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 mt-1">
-                    จัดเก็บสถานะรวม 8 หมวดรายได้, ภาษีที่ดิน/ป้าย, สัญญาตลาด และประวัติรับเงิน สำหรับซิงค์สดระหว่างเครื่อง
+                    จัดเก็บสรุปภาพรวม KPI ประมาณการ รับจริง เปอร์เซ็นต์ความก้าวหน้า และสถานะฐานข้อมูลกลาง
                   </p>
                   <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>สถานะ: พร้อมใช้งาน</span>
-                    <span className="text-emerald-600 font-semibold">ซิงค์อัตโนมัติ</span>
+                    <span>ยอดรวม 450 ล้านบาท • รับจริงสะสม 247.65 ล้านบาท</span>
+                    <span className="text-emerald-600 font-semibold">เชื่อมต่อแล้ว</span>
                   </div>
                 </div>
 
-                {/* 2. Tax Summaries Collection (Land & Sign) */}
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-4 h-4 text-indigo-600" />
-                      <span className="font-bold text-xs text-slate-900 font-mono">tax_summaries</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-bold">
-                      2 ระบบภาษี (ที่ดิน & ป้าย)
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mt-1">
-                    ระบบติดตามเป้าหมายประมาณการ, ยอดจัดเก็บได้, ยอดลูกหนี้คงค้าง, และการผ่อนชำระ 3 งวดของภาษีที่ดินและภาษีป้าย
-                  </p>
-                  <div className="mt-2 text-[10px] text-slate-500 flex flex-col gap-1 pt-1 border-t border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <span>ที่ดินฯ: เป้าหมาย {formatCurrency(landEstimate)} บ. • รับจริง {formatCurrency(landCollectedAmount)} บ. ({formatNumber(landCollectedCount)} ราย)</span>
-                      <span className="text-emerald-600 font-semibold shrink-0 ml-1">จัดเก็บแล้ว</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>ป้าย: เป้าหมาย {formatCurrency(signEstimate)} บ. • รับจริง {formatCurrency(signCollectedAmount)} บ. ({formatNumber(signCollectedCount)} ราย)</span>
-                      <span className="text-emerald-600 font-semibold shrink-0 ml-1">จัดเก็บแล้ว</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Taxpayers Collection */}
-                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Landmark className="w-4 h-4 text-emerald-600" />
-                      <span className="font-bold text-xs text-slate-900 font-mono">taxpayers</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                      {firebaseStats.taxpayersCount} รายการ
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mt-1">
-                    ตารางทะเบียนผู้เสียภาษีที่ดิน สิ่งปลูกสร้าง และภาษีป้าย พร้อมยอดประเมิน หนี้เก่า และงวดการผ่อนชำระ
-                  </p>
-                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>ภาษีที่ดิน ({formatNumber(landCount)} ราย) • ภาษีป้าย ({formatNumber(signCount)} ราย) • ลูกหนี้เก่า ({formatNumber(landOldDebtors.length + signOldDebtors.length)} ราย)</span>
-                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
-                  </div>
-                </div>
-
-                {/* 4. Revenue Categories Collection */}
+                {/* เมนูที่ 2: 8 หมวดรายได้ */}
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1581,14 +1548,100 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                       <span className="font-bold text-xs text-slate-900 font-mono">revenue_categories</span>
                     </div>
                     <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold">
-                      8 หมวดงบประมาณ
+                      เมนู 2: 8 หมวดรายได้
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 mt-1">
-                    ตารางโครงสร้าง 8 หมวดรายได้ของเทศบาลเมืองมหาสารคาม พร้อมยอดประมาณการและยอดรับจริง
+                    ตารางโครงสร้าง 8 หมวดรายได้เทศบาล (ภาษี, ค่าธรรมเนียม, ทรัพย์สิน, พาณิชยการ, เบ็ดเตล็ด, ทุน, จัดสรร, อุดหนุน)
                   </p>
                   <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
-                    <span>หมวดภาษี, ค่าธรรมเนียม, ทรัพย์สิน, สาธารณูปโภค ฯลฯ</span>
+                    <span>{categories.length} หมวด • ครบทุกรายการงบประมาณ</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+
+                {/* เมนูที่ 3: ระบบติดตามผลจัดเก็บภาษีที่ดิน & ภาษีป้าย */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="w-4 h-4 text-indigo-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">tax_summaries (land & sign)</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 text-[10px] font-bold">
+                      เมนู 3: ผลจัดเก็บภาษี
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    ระบบติดตามเป้าหมายประมาณการ, ยอดจัดเก็บ, ยอดค้างชำระ และผ่อนชำระ 3 งวดของภาษีที่ดินและภาษีป้าย
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex flex-col gap-1 pt-1 border-t border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <span>ที่ดินฯ: เป้า {formatCurrency(landEstimate)} บ. • รับจริง {formatCurrency(landCollectedAmount)} บ. ({formatNumber(landCollectedCount)} ราย)</span>
+                      <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>ป้าย: เป้า {formatCurrency(signEstimate)} บ. • รับจริง {formatCurrency(signCollectedAmount)} บ. ({formatNumber(signCollectedCount)} ราย)</span>
+                      <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* เมนูที่ 3: ทะเบียนผู้เสียภาษี & ลูกหนี้เก่า */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Landmark className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">taxpayers & old_tax_debtors</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      เมนู 3: ทะเบียน & ลูกหนี้
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    ตารางทะเบียนผู้เสียภาษี พร้อมประเมินยอด ลดหย่อน ยอดสุทธิ หนี้เก่า และสถานะการชำระ
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>ทะเบียน ({taxpayers.length} ราย) • ลูกหนี้เก่า ({landOldDebtors.length + signOldDebtors.length} ราย)</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+
+                {/* เมนูที่ 4: บันทึกข้อความราชการ */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="w-4 h-4 text-amber-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">official_memorandums</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold">
+                      เมนู 4: บันทึกราชการ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    จัดเก็บแบบฟอร์มบันทึกข้อความทางการราชการ รายงานฝ่ายพัฒนารายได้ กองคลัง เสนอผู้บริหาร
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>เลขที่ มค ๕๒๐๐๔/พิเศษ • ปี ๒๕๗๐</span>
+                    <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
+                  </div>
+                </div>
+
+                {/* ระบบเสริม: ตลาดสด/ตลาดโต้รุ่ง & รายรับประจำวัน */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Receipt className="w-4 h-4 text-teal-600" />
+                      <span className="font-bold text-xs text-slate-900 font-mono">market_contracts & daily_records</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-bold">
+                      ระบบตลาด & ใบเสร็จ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    สัญญาเช่าแผงตลาดสด ตลาดโต้รุ่ง และประวัติบันทึกรายรับประจำวันของฝ่ายพัฒนารายได้
+                  </p>
+                  <div className="mt-2 text-[10px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200">
+                    <span>ตลาด 2 แห่ง • ใบเสร็จรายวัน ({dailyRecords.length} ฉบับ)</span>
                     <span className="text-emerald-600 font-semibold">จัดเก็บแล้ว</span>
                   </div>
                 </div>

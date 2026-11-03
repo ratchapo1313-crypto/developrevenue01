@@ -17,6 +17,7 @@ import {
   Award,
 } from 'lucide-react';
 import { UserSession } from '../types/revenue';
+import { firebaseProjectId } from '../firebase';
 
 interface NavbarProps {
   currentTab: string;
@@ -112,10 +113,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   type="button"
                   onClick={onOpenExcel}
                   className="hidden lg:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-400 border border-emerald-500/40 text-[11px] cursor-pointer transition-all hover:scale-105"
-                  title="คลิกเพื่อจัดการและตรวจสอบฐานข้อมูล Firebase Firestore: databaserevenuecollection"
+                  title={`คลิกเพื่อจัดการและตรวจสอบฐานข้อมูล Firebase (${firebaseProjectId} / databaserevenuecollection)`}
                 >
                   <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                  <span>Firebase: <span className="font-mono font-semibold text-amber-300">databaserevenuecollection</span> • จัดเก็บอัตโนมัติ</span>
+                  <span>Firebase: <span className="font-mono text-emerald-300 font-bold">{firebaseProjectId}</span> • <span className="font-mono font-semibold text-amber-300">databaserevenuecollection</span> (ครบทุกเมนู)</span>
                 </button>
               </div>
               <p className="text-xs text-blue-200/90">
@@ -131,10 +132,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onOpenExcel}
               className="flex lg:hidden items-center space-x-1 px-2 py-1 rounded-lg bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-[11px] cursor-pointer"
-              title="คลิกเพื่อตรวจสอบฐานข้อมูล: databaserevenuecollection"
+              title={`คลิกเพื่อตรวจสอบฐานข้อมูล: ${firebaseProjectId}`}
             >
               <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-              <span className="font-mono text-[10px] text-amber-300">databaserevenuecollection</span>
+              <span className="font-mono text-[10px] text-amber-300">{firebaseProjectId}</span>
             </button>
 
 

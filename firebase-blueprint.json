@@ -30,6 +30,25 @@
       },
       "required": ["id", "name", "taxType"]
     },
+    "OldTaxDebtorRecord": {
+      "title": "OldTaxDebtorRecord",
+      "description": "Outstanding tax debtors record from prior fiscal years",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "taxType": { "type": "string", "enum": ["land", "sign"] },
+        "taxYear": { "type": "string" },
+        "debtAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "status": { "type": "number" },
+        "installmentCount": { "type": "number" },
+        "notes": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "taxType", "debtAmount"]
+    },
     "DailyRecord": {
       "title": "DailyRecord",
       "description": "Daily revenue cash receipt entry",
@@ -86,6 +105,76 @@
       },
       "required": ["id", "taxType"]
     },
+    "OfficialMemorandumRecord": {
+      "title": "OfficialMemorandumRecord",
+      "description": "Official memorandum report data for the Revenue Development Division",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "docNo": { "type": "string" },
+        "docDate": { "type": "string" },
+        "subject": { "type": "string" },
+        "department": { "type": "string" },
+        "fiscalYear": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterPosition": { "type": "string" },
+        "directorName": { "type": "string" },
+        "directorPosition": { "type": "string" },
+        "executiveName": { "type": "string" },
+        "executivePosition": { "type": "string" },
+        "summary": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "docNo", "docDate", "subject"]
+    },
+    "MarketSummaryRecord": {
+      "title": "MarketSummaryRecord",
+      "description": "Summary data for municipal municipal fresh and night markets",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "marketType": { "type": "string", "enum": ["fresh_market", "night_market"] },
+        "name": { "type": "string" },
+        "totalStalls": { "type": "number" },
+        "occupiedStalls": { "type": "number" },
+        "dailyRate": { "type": "number" },
+        "monthlyEstimate": { "type": "number" },
+        "monthlyActual": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "marketType", "name"]
+    },
+    "MarketContractRecord": {
+      "title": "MarketContractRecord",
+      "description": "Individual market vendor stall lease contract",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "marketType": { "type": "string" },
+        "stallNo": { "type": "string" },
+        "vendorName": { "type": "string" },
+        "monthlyFee": { "type": "number" },
+        "contractStartDate": { "type": "string" },
+        "contractEndDate": { "type": "string" },
+        "status": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "marketType", "stallNo", "vendorName"]
+    },
+    "OverviewMetricsRecord": {
+      "title": "OverviewMetricsRecord",
+      "description": "Calculated overview KPI metrics for executive municipal dashboard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fiscalYear": { "type": "string" },
+        "totalEstimate": { "type": "number" },
+        "totalActual": { "type": "number" },
+        "percentage": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "fiscalYear", "totalEstimate", "totalActual"]
+    },
     "AppDatabaseDoc": {
       "title": "AppDatabaseDoc",
       "description": "Central state document for live cross-device synchronization and backup",
@@ -109,7 +198,11 @@
   "firestore": {
     "/taxpayers/{taxpayerId}": {
       "schema": "TaxpayerRecord",
-      "description": "Collection of taxpayer and old debt records"
+      "description": "Collection of taxpayer records for land and sign tax"
+    },
+    "/old_tax_debtors/{debtorId}": {
+      "schema": "OldTaxDebtorRecord",
+      "description": "Collection of outstanding prior-year tax debtors"
     },
     "/daily_records/{recordId}": {
       "schema": "DailyRecord",
@@ -122,6 +215,22 @@
     "/tax_summaries/{taxType}": {
       "schema": "TaxSummary",
       "description": "Summary data for land tax and sign tax"
+    },
+    "/official_memorandums/{memoId}": {
+      "schema": "OfficialMemorandumRecord",
+      "description": "Collection of official municipal memorandums and reports"
+    },
+    "/market_summaries/{marketType}": {
+      "schema": "MarketSummaryRecord",
+      "description": "Collection of municipal market summaries (Fresh & Night Market)"
+    },
+    "/market_contracts/{contractId}": {
+      "schema": "MarketContractRecord",
+      "description": "Collection of municipal market stall lease contracts"
+    },
+    "/overview_metrics/{docId}": {
+      "schema": "OverviewMetricsRecord",
+      "description": "Collection of aggregated municipal overview KPI metrics"
     },
     "/app_state/{docId}": {
       "schema": "AppDatabaseDoc",

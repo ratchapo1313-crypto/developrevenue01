@@ -114,7 +114,7 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
     const nowIso = new Date().toISOString();
     const batch = writeBatch(db);
 
-    // 1. Central app_state/active_database document
+    // 1. Central app_state/active_database document (บูรณาการทุกเมนู)
     const centralData = {
       databaseName: DATABASE_ID,
       version: 1,
@@ -133,7 +133,29 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
     };
     batch.set(activeDocRef, centralData);
 
-    // 2. Seed revenue categories documents (all 8 categories)
+    // 2. เมนูที่ 1: ภาพรวมรายได้ (Overview Dashboard) - overview_metrics
+    const overviewRef = doc(db, 'overview_metrics', 'summary');
+    const totalOverviewEstimate = INITIAL_REVENUE_CATEGORIES.reduce(
+      (sum, c) => sum + c.items.reduce((iSum, item) => iSum + (item.estimate || 0), 0),
+      0
+    );
+    const totalOverviewActual = INITIAL_REVENUE_CATEGORIES.reduce(
+      (sum, c) => sum + c.items.reduce((iSum, item) => iSum + (item.actual || 0), 0),
+      0
+    );
+    batch.set(overviewRef, {
+      id: 'summary',
+      fiscalYear: '2570',
+      municipality: 'เทศบาลเมืองมหาสารคาม',
+      division: 'ฝ่ายพัฒนารายได้ กองคลัง',
+      totalEstimate: totalOverviewEstimate,
+      totalActual: totalOverviewActual,
+      percentage: totalOverviewEstimate > 0 ? Number(((totalOverviewActual / totalOverviewEstimate) * 100).toFixed(2)) : 0,
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+
+    // 3. เมนูที่ 2: 8 หมวดรายได้ (8 Revenue Categories)
     INITIAL_REVENUE_CATEGORIES.forEach((cat) => {
       const catRef = doc(db, 'revenue_categories', cat.key);
       const totalEstimate = cat.items.reduce((sum, item) => sum + (item.estimate || 0), 0);
@@ -154,7 +176,7 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
       });
     });
 
-    // 3. Seed tax summaries (land and sign)
+    // 4. เมนูที่ 3: ภาษีที่ดิน & ภาษีป้าย (Property & Sign Taxes) - สรุปภาษี
     const landSummaryRef = doc(db, 'tax_summaries', 'land');
     batch.set(landSummaryRef, {
       ...INITIAL_LAND_TAX_DATA,
@@ -171,7 +193,7 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
       updatedAt: nowIso,
     });
 
-    // 4. Seed full initial taxpayer records
+    // 5. เมนูที่ 3: บัญชีผู้เสียภาษี (Taxpayers)
     INITIAL_TAXPAYER_RECORDS.forEach((tp) => {
       const tpRef = doc(db, 'taxpayers', tp.id);
       batch.set(tpRef, {
@@ -180,7 +202,61 @@ export async function bootstrapFirestoreDatabase(forceRecreate = false): Promise
       });
     });
 
-    // 5. Seed initial daily receipt records
+    // 6. เมนูที่ 3: ลูกหนี้ภาษีค้างชำระปีก่อน (Old Tax Debtors)
+    INITIAL_OLD_TAX_DEBTORS.forEach((debtor) => {
+      const debtorRef = doc(db, 'old_tax_debtors', debtor.id);
+      batch.set(debtorRef, {
+        ...debtor,
+        updatedAt: nowIso,
+      });
+    });
+
+    // 7. เมนูที่ 4: บันทึกข้อความราชการ (Official Memorandum)
+    const memoRef = doc(db, 'official_memorandums', 'memo_fiscal_2570');
+    batch.set(memoRef, {
+      id: 'memo_fiscal_2570',
+      docNo: 'มค ๕๒๐๐๔/พิเศษ',
+      docDate: '2026-10-24',
+      subject: 'รายงานผลการจัดเก็บรายได้ ประจำปีงบประมาณ พ.ศ. ๒๕๗๐',
+      department: 'ฝ่ายพัฒนารายได้ กองคลัง เทศบาลเมืองมหาสารคาม',
+      fiscalYear: '2570',
+      reporterName: 'นางสาวพิมพ์ใจ พัฒนารายได้',
+      reporterPosition: 'เจ้าพนักงานจัดเก็บรายได้ชำนาญงาน',
+      directorName: 'นางสาวกานดา วิริยะการคลัง',
+      directorPosition: 'ผู้อำนวยการกองคลัง',
+      executiveName: 'นายภาคภูมิ วัฒนพงษ์',
+      executivePosition: 'นายกเทศมนตรีเมืองมหาสารคาม',
+      updatedAt: nowIso,
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+
+    // 8. ระบบตลาดเทศบาล (Fresh Market & Night Market)
+    const freshMarketRef = doc(db, 'market_summaries', 'fresh_market');
+    batch.set(freshMarketRef, {
+      id: 'fresh_market',
+      marketType: 'fresh_market',
+      ...INITIAL_MARKET_SUMMARIES.fresh_market,
+      updatedAt: nowIso,
+    });
+
+    const nightMarketRef = doc(db, 'market_summaries', 'night_market');
+    batch.set(nightMarketRef, {
+      id: 'night_market',
+      marketType: 'night_market',
+      ...INITIAL_MARKET_SUMMARIES.night_market,
+      updatedAt: nowIso,
+    });
+
+    // 9. สัญญาเช่าแผงตลาด (Market Contracts)
+    INITIAL_MARKET_CONTRACTS.forEach((contract) => {
+      const contractRef = doc(db, 'market_contracts', contract.id);
+      batch.set(contractRef, {
+        ...contract,
+        updatedAt: nowIso,
+      });
+    });
+
+    // 10. บันทึกรายรับประจำวัน (Daily Records)
     INITIAL_DAILY_RECORDS.forEach((rec) => {
       const recRef = doc(db, 'daily_records', rec.id);
       batch.set(recRef, {
@@ -787,6 +863,11 @@ export async function getFirestoreStats(): Promise<{
   taxSummariesCount: number;
   landTaxpayersCount: number;
   signTaxpayersCount: number;
+  oldTaxDebtorsCount: number;
+  marketContractsCount: number;
+  marketSummariesCount: number;
+  memorandumsCount: number;
+  overviewMetricsCount: number;
   lastUpdated: string | null;
 }> {
   try {
@@ -801,12 +882,24 @@ export async function getFirestoreStats(): Promise<{
     let taxSummariesCount = 2;
     let lastUpdated: string | null = null;
 
+    let oldTaxDebtorsCount = 0;
+    let marketContractsCount = 0;
+    let marketSummariesCount = 2;
+    let memorandumsCount = 1;
+    let overviewMetricsCount = 1;
+
     if (snap.exists()) {
       const data = snap.data();
       if (Array.isArray(data.taxpayers)) {
         taxpayersCount = data.taxpayers.length;
         landTaxpayersCount = data.taxpayers.filter((t: any) => t.taxType === 'land').length;
         signTaxpayersCount = data.taxpayers.filter((t: any) => t.taxType === 'sign').length;
+      }
+      if (Array.isArray(data.oldTaxDebtors)) {
+        oldTaxDebtorsCount = data.oldTaxDebtors.length;
+      }
+      if (Array.isArray(data.marketContracts)) {
+        marketContractsCount = data.marketContracts.length;
       }
       dailyRecordsCount = Array.isArray(data.dailyRecords) ? data.dailyRecords.length : 0;
       categoriesCount = Array.isArray(data.categories) ? data.categories.length : 8;
@@ -843,6 +936,11 @@ export async function getFirestoreStats(): Promise<{
       taxSummariesCount,
       landTaxpayersCount,
       signTaxpayersCount,
+      oldTaxDebtorsCount,
+      marketContractsCount,
+      marketSummariesCount,
+      memorandumsCount,
+      overviewMetricsCount,
       lastUpdated,
     };
   } catch {
@@ -855,8 +953,78 @@ export async function getFirestoreStats(): Promise<{
       taxSummariesCount: 0,
       landTaxpayersCount: 0,
       signTaxpayersCount: 0,
+      oldTaxDebtorsCount: 0,
+      marketContractsCount: 0,
+      marketSummariesCount: 0,
+      memorandumsCount: 0,
+      overviewMetricsCount: 0,
       lastUpdated: null,
     };
   }
 }
+
+/**
+ * Persists official memorandum to Firestore official_memorandums collection
+ */
+export async function persistOfficialMemorandumToFirestore(memo: {
+  id?: string;
+  docNo: string;
+  docDate: string;
+  subject: string;
+  department?: string;
+  fiscalYear?: string;
+  reporterName?: string;
+  reporterPosition?: string;
+  directorName?: string;
+  directorPosition?: string;
+  executiveName?: string;
+  executivePosition?: string;
+  summary?: any;
+}): Promise<boolean> {
+  try {
+    const memoId = memo.id || 'memo_fiscal_2570';
+    const memoRef = doc(db, 'official_memorandums', memoId);
+    await setDoc(memoRef, {
+      ...memo,
+      id: memoId,
+      updatedAt: new Date().toISOString(),
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+    return true;
+  } catch (error) {
+    console.warn('Persist official memorandum to Firestore failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Persists executive overview metrics to Firestore overview_metrics collection
+ */
+export async function persistOverviewMetricsToFirestore(metrics: {
+  totalEstimate: number;
+  totalActual: number;
+  fiscalYear?: string;
+}): Promise<boolean> {
+  try {
+    const overviewRef = doc(db, 'overview_metrics', 'summary');
+    await setDoc(overviewRef, {
+      id: 'summary',
+      fiscalYear: metrics.fiscalYear || '2570',
+      municipality: 'เทศบาลเมืองมหาสารคาม',
+      division: 'ฝ่ายพัฒนารายได้ กองคลัง',
+      totalEstimate: metrics.totalEstimate,
+      totalActual: metrics.totalActual,
+      percentage: metrics.totalEstimate > 0
+        ? Number(((metrics.totalActual / metrics.totalEstimate) * 100).toFixed(2))
+        : 0,
+      updatedAt: new Date().toISOString(),
+      lastUpdatedBy: CURRENT_TAB_ID,
+    });
+    return true;
+  } catch (error) {
+    console.warn('Persist overview metrics to Firestore failed:', error);
+    return false;
+  }
+}
+
 
