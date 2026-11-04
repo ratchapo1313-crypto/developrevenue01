@@ -26,17 +26,17 @@ service cloud.firestore {
       );
     }
 
-    // 1. Central App state synchronization collection (central DB sync & auto-bootstrap)
+    // 1. Central App state synchronization (central DB sync & auto-bootstrap)
     match /app_state/{docId} {
       allow read: if true;
       allow create, update: if isValidId(docId) && (
         incoming().updatedAt is string &&
         incoming().updatedAt.size() <= 64
       );
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
-    // 2. Taxpayers collection (land and sign tax records)
+    // 2. Taxpayers collection (land and sign tax records - CRUD)
     match /taxpayers/{taxpayerId} {
       allow read: if true;
       allow create, update: if isValidId(taxpayerId) && (
@@ -46,7 +46,7 @@ service cloud.firestore {
       allow delete: if true;
     }
 
-    // 3. Old tax debtors collection (prior fiscal year debts)
+    // 3. Old tax debtors collection (prior fiscal year debts - CRUD)
     match /old_tax_debtors/{debtorId} {
       allow read: if true;
       allow create, update: if isValidId(debtorId) && (
@@ -56,7 +56,7 @@ service cloud.firestore {
       allow delete: if true;
     }
 
-    // 4. Daily revenue collection receipts
+    // 4. Daily revenue collection receipts (CRUD)
     match /daily_records/{recordId} {
       allow read: if true;
       allow create, update: if isValidId(recordId) && (
@@ -66,43 +66,43 @@ service cloud.firestore {
       allow delete: if true;
     }
 
-    // 5. 8 Revenue Categories and budget items
+    // 5. 8 Revenue Categories and budget items (CRUD)
     match /revenue_categories/{categoryKey} {
       allow read: if true;
       allow create, update: if isValidId(categoryKey) && (
         incoming().key is string &&
         incoming().title is string && incoming().title.size() <= 200
       );
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
-    // 6. Tax summaries (land and sign tracking metrics)
+    // 6. Tax summaries (land and sign tracking metrics - CRUD)
     match /tax_summaries/{taxType} {
       allow read: if true;
       allow create, update: if isValidId(taxType) && taxType in ['land', 'sign'];
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
-    // 7. Official memorandums (government memo reports)
+    // 7. Official memorandums (government memo reports - CRUD)
     match /official_memorandums/{memoId} {
       allow read: if true;
       allow create, update: if isValidId(memoId) && (
         incoming().docNo is string &&
         incoming().docDate is string
       );
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
-    // 8. Municipal Market summaries (fresh and night market)
+    // 8. Municipal Market summaries (fresh and night market - CRUD)
     match /market_summaries/{marketType} {
       allow read: if true;
       allow create, update: if isValidId(marketType) && (
         incoming().name is string
       );
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
-    // 9. Municipal Market stall lease contracts
+    // 9. Municipal Market stall lease contracts (CRUD)
     match /market_contracts/{contractId} {
       allow read: if true;
       allow create, update: if isValidId(contractId) && (
@@ -111,14 +111,14 @@ service cloud.firestore {
       allow delete: if true;
     }
 
-    // 10. Executive Overview KPI metrics
+    // 10. Executive Overview KPI metrics (CRUD)
     match /overview_metrics/{docId} {
       allow read: if true;
       allow create, update: if isValidId(docId) && (
         incoming().totalEstimate is number &&
         incoming().totalActual is number
       );
-      allow delete: if isAdmin();
+      allow delete: if true;
     }
 
     // 11. Admins collection

@@ -277,6 +277,13 @@ async function startServer() {
     console.log(`Server running at http://0.0.0.0:${PORT}`);
   });
 
+  server.on('error', (err: any) => {
+    console.error('Server error:', err);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use.`);
+    }
+  });
+
   process.on('SIGTERM', () => {
     server.close(() => {
       process.exit(0);
@@ -289,4 +296,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('Fatal error starting server:', err);
+  process.exit(1);
+});

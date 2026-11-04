@@ -39,6 +39,10 @@ import {
 import {
   persistTaxSummariesToFirestore,
   persistAllTaxpayersToFirestore,
+  persistTaxpayerToFirestore,
+  deleteTaxpayerFromFirestore,
+  persistLandTaxToFirestore,
+  persistSignTaxToFirestore,
 } from '../utils/firebaseDatabase';
 
 interface PropertyTaxSectionProps {
@@ -402,8 +406,10 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
 
     if (taxType === 'land') {
       onUpdateLandTax(updatedTaxData);
+      persistLandTaxToFirestore(updatedTaxData).catch(() => {});
     } else {
       onUpdateSignTax(updatedTaxData);
+      persistSignTaxToFirestore(updatedTaxData).catch(() => {});
     }
   };
 
@@ -484,39 +490,36 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
     const isFully = (afterRelief > 0 || oldDebt > 0) && totalRemaining === 0;
 
     let updatedList: TaxpayerRecord[];
+    let savedRecord: TaxpayerRecord;
 
     if (editingTaxpayer) {
-      updatedList = taxpayers.map((item) => {
-        if (item.id === editingTaxpayer.id) {
-          return {
-            ...item,
-            name: taxpayerForm.name.trim(),
-            assessedAmount: assessed,
-            reliefAmount: relief,
-            afterReliefAmount: afterRelief,
-            status: st,
-            payment1: p1,
-            payment2: p2,
-            payment3: p3,
-            remainingBalance: rem2570,
-            isFullyPaid: isFully,
-            isPendingVerification: taxpayerForm.isPendingVerification,
-            hasOldDebt: hasOld,
-            oldDebtAmount: oldDebt,
-            oldDebtStatus: oldSt,
-            oldDebtPaid: oldPaid,
-            oldDebtRemaining: oldRem,
-            penaltyAmount: pen,
-            surchargeAmount: sur,
-            notes: taxpayerForm.notes.trim(),
-            isOldDebtor: false,
-            updatedAt: new Date().toISOString().slice(0, 10),
-          };
-        }
-        return item;
-      });
+      savedRecord = {
+        ...editingTaxpayer,
+        name: taxpayerForm.name.trim(),
+        assessedAmount: assessed,
+        reliefAmount: relief,
+        afterReliefAmount: afterRelief,
+        status: st,
+        payment1: p1,
+        payment2: p2,
+        payment3: p3,
+        remainingBalance: rem2570,
+        isFullyPaid: isFully,
+        isPendingVerification: taxpayerForm.isPendingVerification,
+        hasOldDebt: hasOld,
+        oldDebtAmount: oldDebt,
+        oldDebtStatus: oldSt,
+        oldDebtPaid: oldPaid,
+        oldDebtRemaining: oldRem,
+        penaltyAmount: pen,
+        surchargeAmount: sur,
+        notes: taxpayerForm.notes.trim(),
+        isOldDebtor: false,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      };
+      updatedList = taxpayers.map((item) => (item.id === editingTaxpayer.id ? savedRecord : item));
     } else {
-      const newRecord: TaxpayerRecord = {
+      savedRecord = {
         id: `tp-${activeTab}-${Date.now()}`,
         taxType: activeTab,
         name: taxpayerForm.name.trim(),
@@ -541,9 +544,11 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
         isOldDebtor: false,
         updatedAt: new Date().toISOString().slice(0, 10),
       };
-      updatedList = [newRecord, ...taxpayers];
+      updatedList = [savedRecord, ...taxpayers];
     }
 
+    // Persist immediately to Firebase Firestore
+    persistTaxpayerToFirestore(savedRecord).catch(() => {});
     onUpdateTaxpayers(updatedList);
     syncTaxData(updatedList, activeTab);
     setIsTaxpayerModalOpen(false);
@@ -554,6 +559,8 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
     if (!canEdit) return;
     if (confirm(`คุณต้องการลบรายชื่อ "${name}" ออกจากระบบหรือไม่?`)) {
       const updatedList = taxpayers.filter((t) => t.id !== id);
+      // Delete immediately from Firebase Firestore
+      deleteTaxpayerFromFirestore(id).catch(() => {});
       onUpdateTaxpayers(updatedList);
       syncTaxData(updatedList, activeTab);
     }
@@ -607,8 +614,10 @@ export const PropertyTaxSection: React.FC<PropertyTaxSectionProps> = ({
 
     if (activeTab === 'land') {
       onUpdateLandTax(updated);
+      persistLandTaxToFirestore(updated).catch(() => {});
     } else {
       onUpdateSignTax(updated);
+      persistSignTaxToFirestore(updated).catch(() => {});
     }
     setIsEstimateModalOpen(false);
   };
