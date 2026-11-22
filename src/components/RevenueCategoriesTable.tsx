@@ -9,12 +9,9 @@ import {
   Plus,
   Database,
   Radio,
-  RefreshCw,
   Trash2,
-  Coins,
   TrendingUp,
   Layers,
-  Building2,
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
@@ -22,8 +19,6 @@ import { RevenueCategory, RevenueItem, UserSession } from '../types/revenue';
 import { formatCurrency, exportSingleCategory } from '../utils/excel';
 import {
   persistRevenueCategoryToFirestore,
-  persistAllRevenueCategoriesToFirestore,
-  fetchRevenueCategoriesFromFirestore,
 } from '../utils/firebaseDatabase';
 
 interface RevenueCategoriesTableProps {
@@ -40,16 +35,13 @@ export const RevenueCategoriesTable: React.FC<RevenueCategoriesTableProps> = ({
   onUpdateCategoryItem,
   onAddCategoryItem,
   onDeleteCategoryItem,
-  onSetCategories,
   session,
 }) => {
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
-  // Cloud Firebase sync & feedback states
-  const [isSyncingFirebase, setIsSyncingFirebase] = useState<boolean>(false);
-  const [isRefreshingFirebase, setIsRefreshingFirebase] = useState<boolean>(false);
+  // Cloud Firebase feedback state
   const [firebaseNotification, setFirebaseNotification] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -103,26 +95,6 @@ export const RevenueCategoriesTable: React.FC<RevenueCategoriesTableProps> = ({
     }, 4500);
   };
 
-  // Trigger batch save of all 8 categories directly to Firebase databaserevenuecollection
-  const handleSaveAllToFirebase = async () => {
-    setIsSyncingFirebase(true);
-    try {
-      const res = await persistAllRevenueCategoriesToFirestore(categories);
-      if (res.success) {
-        showNotification(
-          'success',
-          `บันทึกและซิงค์ข้อมูล 8 หมวดรายได้ (${totalItemsCount} รายการ) ลงฐานข้อมูล Firebase databaserevenuecollection สำเร็จเรียบร้อยแล้ว`
-        );
-      } else {
-        showNotification('error', `เกิดข้อผิดพลาดในการบันทึก: ${res.error || 'ไม่ทราบสาเหตุ'}`);
-      }
-    } catch (err: any) {
-      showNotification('error', `เชื่อมต่อ Firebase ไม่สำเร็จ: ${err.message || String(err)}`);
-    } finally {
-      setIsSyncingFirebase(false);
-    }
-  };
-
   // Sync a single category to Firebase
   const handleSyncSingleCategoryToFirebase = async (category: RevenueCategory) => {
     try {
@@ -137,26 +109,6 @@ export const RevenueCategoriesTable: React.FC<RevenueCategoriesTableProps> = ({
       }
     } catch (e: any) {
       showNotification('error', `เกิดข้อผิดพลาด: ${e.message || String(e)}`);
-    }
-  };
-
-  // Refresh categories from Firebase Cloud Firestore
-  const handleRefreshFromFirebase = async () => {
-    setIsRefreshingFirebase(true);
-    try {
-      const remote = await fetchRevenueCategoriesFromFirestore();
-      if (remote && remote.length > 0) {
-        if (onSetCategories) {
-          onSetCategories(remote);
-        }
-        showNotification('success', `ดึงข้อมูล 8 หมวดรายได้ล่าสุดจาก Firebase สำเร็จแล้ว (พบ ${remote.length} หมวด)`);
-      } else {
-        showNotification('success', 'เชื่อมต่อ Firebase สำเร็จ (ข้อมูลตรงกับคลาวด์แล้ว)');
-      }
-    } catch (e: any) {
-      showNotification('error', `ดึงข้อมูลจาก Firebase ไม่สำเร็จ: ${e.message || String(e)}`);
-    } finally {
-      setIsRefreshingFirebase(false);
     }
   };
 
@@ -332,42 +284,6 @@ export const RevenueCategoriesTable: React.FC<RevenueCategoriesTableProps> = ({
             </div>
           </div>
 
-          {/* Cloud Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(true)}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
-                title="เพิ่มรายการจัดเก็บรายได้ใหม่ลงใน 8 หมวด"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>เพิ่มรายการรายได้</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              disabled={isSyncingFirebase}
-              onClick={handleSaveAllToFirebase}
-              className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold rounded-xl shadow-md transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
-              title="บันทึกและซิงค์ข้อมูลทั้ง 8 หมวดลงฐานข้อมูล Firebase"
-            >
-              <Radio className={`w-3.5 h-3.5 ${isSyncingFirebase ? 'animate-spin' : ''}`} />
-              <span>{isSyncingFirebase ? 'กำลังบันทึกลง Cloud...' : 'บันทึก 8 หมวดลง Firebase'}</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isRefreshingFirebase}
-              onClick={handleRefreshFromFirebase}
-              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-xl border border-white/20 transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
-              title="ดึงข้อมูลล่าสุดจาก Firebase"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingFirebase ? 'animate-spin' : ''}`} />
-              <span>ดึงจาก Firebase</span>
-            </button>
-          </div>
         </div>
 
         {/* 8 Categories Grand Metrics Bar */}

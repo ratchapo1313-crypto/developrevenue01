@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Building2,
-  FileSpreadsheet,
   LogOut,
   LayoutDashboard,
   TableProperties,
@@ -9,7 +8,6 @@ import {
   FileText,
   RotateCcw,
   Radio,
-  ExternalLink,
   ChevronDown,
   UserCheck,
   ShieldCheck,
@@ -45,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'categories', label: '8 หมวดรายได้', icon: TableProperties },
     { id: 'taxes', label: 'ภาษีที่ดิน & ภาษีป้าย', icon: Landmark },
     { id: 'memorandum', label: 'บันทึกข้อความราชการ', icon: FileText },
-  ];
+  ].filter((tab) => !(session?.role === 'Executive' && tab.id === 'memorandum'));
 
   const getRoleInfo = () => {
     if (!session) {
@@ -211,7 +209,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div>
                         <div className="font-semibold text-slate-900">ผู้บริหาร (Executive)</div>
                         <div className="text-[10px] text-slate-500 leading-tight">
-                          สิทธิ์ดูสรุปผลทั้งเทศบาล, พิจารณาอนุมัติบันทึกข้อความ
+                          สิทธิ์ดูสรุปผลทั้งเทศบาล (ภาพรวม, 8 หมวดรายได้, ภาษีที่ดิน/ป้าย)
                         </div>
                       </div>
                     </button>
@@ -224,27 +222,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>{roleInfo.shortLabel}</span>
               </div>
             )}
-
-            {/* Open New Window for Concurrent Multi-user Test */}
-            <button
-              type="button"
-              onClick={() => window.open(window.location.href, '_blank')}
-              className="px-2.5 py-1.5 rounded-xl bg-blue-800/80 hover:bg-blue-700 border border-blue-600/50 text-white font-medium transition-colors flex items-center space-x-1 shadow-xs"
-              title="เปิดแท็บ/หน้าต่างใหม่ เพื่อทดสอบเข้าสู่ระบบพร้อมกันหลายคน"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">เปิดแท็บใหม่</span>
-            </button>
-
-            {/* Excel Manager */}
-            <button
-              type="button"
-              onClick={onOpenExcel}
-              className="px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-500/50 text-white font-medium transition-colors flex items-center space-x-1.5 shadow-xs cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>Excel (นำเข้า/ส่งออก)</span>
-            </button>
 
             {/* Logout button */}
             {session && (

@@ -3,8 +3,6 @@ import {
   Landmark,
   PiggyBank,
   ArrowUpRight,
-  FileSpreadsheet,
-  TableProperties,
   Layers,
   Percent,
   History,
@@ -28,7 +26,7 @@ interface OverviewDashboardProps {
   marketSummaries?: Record<'night_market' | 'fresh_market', MarketSummary>;
   taxpayers?: TaxpayerRecord[];
   onNavigateTab: (tab: string) => void;
-  onOpenExcel: () => void;
+  onOpenExcel?: () => void;
 }
 
 export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
@@ -37,7 +35,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
   signTax,
   taxpayers = [],
   onNavigateTab,
-  onOpenExcel,
 }) => {
   // Calculate General Revenue Totals (8 Categories)
   let totalEstimate = 0;
@@ -274,29 +271,6 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2.5">
-            <button
-              onClick={() => onNavigateTab('categories')}
-              className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs sm:text-sm font-semibold shadow-md transition-all flex items-center space-x-2 cursor-pointer"
-            >
-              <TableProperties className="w-4 h-4" />
-              <span>ดู 8 หมวดรายได้</span>
-            </button>
-            <button
-              onClick={() => onNavigateTab('taxes')}
-              className="px-4 py-2.5 rounded-xl bg-blue-700/80 hover:bg-blue-600 text-white border border-blue-400/40 text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center space-x-2 cursor-pointer"
-            >
-              <Landmark className="w-4 h-4 text-amber-300" />
-              <span>ภาษีที่ดิน & ภาษีป้าย</span>
-            </button>
-            <button
-              onClick={onOpenExcel}
-              className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-white text-xs sm:text-sm font-medium transition-all flex items-center space-x-2 cursor-pointer"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
-              <span>ส่งออก Excel</span>
-            </button>
-          </div>
         </div>
 
         {/* Decorative background shapes */}

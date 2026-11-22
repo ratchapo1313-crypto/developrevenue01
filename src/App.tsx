@@ -776,6 +776,9 @@ export default function App() {
   const handleLoginSuccess = (newSession: UserSession) => {
     setSession(newSession);
     saveStoredSession(newSession);
+    if (newSession.role === 'Executive' && currentTab === 'memorandum') {
+      setCurrentTab('overview');
+    }
   };
 
   const handleSwitchRole = (newRole: 'User' | 'Director' | 'Executive') => {
@@ -827,7 +830,16 @@ export default function App() {
     const targetSession = ROLE_MAP[newRole];
     setSession(targetSession);
     saveStoredSession(targetSession);
+    if (newRole === 'Executive' && currentTab === 'memorandum') {
+      setCurrentTab('overview');
+    }
   };
+
+  useEffect(() => {
+    if (session?.role === 'Executive' && currentTab === 'memorandum') {
+      setCurrentTab('overview');
+    }
+  }, [session, currentTab]);
 
   const handleLogout = () => {
     setSession(null);
@@ -922,7 +934,7 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'memorandum' && (
+        {currentTab === 'memorandum' && session.role !== 'Executive' && (
           <OfficialMemorandum
             categories={categories}
             landTax={landTax}
