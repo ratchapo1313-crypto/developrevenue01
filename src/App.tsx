@@ -83,6 +83,28 @@ export default function App() {
   const isSyncingFromRemoteRef = useRef<boolean>(false);
   // Guard to prevent initial mount from overwriting central server database with client defaults
   const hasLoadedInitialServerDataRef = useRef<boolean>(false);
+  // Keep the first Firestore snapshot until the initial server/bootstrap load is complete.
+  const pendingRemoteCategoriesRef = useRef<RevenueCategory[] | null>(null);
+
+  const applyRemoteCategories = (remoteCats: RevenueCategory[]) => {
+    if (!remoteCats.length) return;
+    isSyncingFromRemoteRef.current = true;
+    setCategories(remoteCats);
+    saveStoredCategories(remoteCats, false, false);
+    const timeStr = new Date().toLocaleTimeString('th-TH');
+    setSyncNotification(`ข้อมูล ${remoteCats.length} หมวดรายได้ ซิงค์จาก Firebase (revenue_categories) แล้ว (${timeStr})`);
+    pendingRemoteCategoriesRef.current = null;
+    setTimeout(() => {
+      isSyncingFromRemoteRef.current = false;
+    }, 150);
+  };
+
+  const flushPendingRemoteCategories = () => {
+    const pending = pendingRemoteCategoriesRef.current;
+    if (pending && hasLoadedInitialServerDataRef.current) {
+      applyRemoteCategories(pending);
+    }
+  };
 
   // Initial load from central database and automatic Firebase Firestore bootstrap
   useEffect(() => {
@@ -99,16 +121,18 @@ export default function App() {
           if (serverData.marketSummaries) setMarketSummaries(serverData.marketSummaries);
           if (serverData.marketContracts) setMarketContracts(serverData.marketContracts);
           if (serverData.dailyRecords) setDailyRecords(serverData.dailyRecords);
+
+          // Mark loaded only when a real server payload exists. If not, let
+          // the Firestore bootstrap hydrate the app instead of locking it out.
+          hasLoadedInitialServerDataRef.current = true;
+          flushPendingRemoteCategories();
+          setTimeout(() => {
+            isSyncingFromRemoteRef.current = false;
+          }, 150);
         }
       })
       .catch((err) => {
         console.warn('Initial server database fetch completed with fallback:', err);
-      })
-      .finally(() => {
-        hasLoadedInitialServerDataRef.current = true;
-        setTimeout(() => {
-          isSyncingFromRemoteRef.current = false;
-        }, 150);
       });
 
     // 2. Automatically verify, create, and bootstrap Firebase Firestore (databaserevenuecollection)
@@ -130,6 +154,7 @@ export default function App() {
             if (fbRes.data.marketContracts) setMarketContracts(fbRes.data.marketContracts);
             if (fbRes.data.dailyRecords) setDailyRecords(fbRes.data.dailyRecords);
             hasLoadedInitialServerDataRef.current = true;
+            flushPendingRemoteCategories();
             setTimeout(() => {
               isSyncingFromRemoteRef.current = false;
             }, 150);
@@ -249,16 +274,16 @@ export default function App() {
   // Real-time listener specifically for the 8 revenue_categories Firestore collection
   useEffect(() => {
     const unsubCategories = subscribeToRevenueCategoriesFromFirestore((remoteCats) => {
-      if (remoteCats && remoteCats.length === 8 && hasLoadedInitialServerDataRef.current) {
-        isSyncingFromRemoteRef.current = true;
-        setCategories(remoteCats);
-        saveStoredCategories(remoteCats, false, false);
-        const timeStr = new Date().toLocaleTimeString('th-TH');
-        setSyncNotification(`ข้อมูล 8 หมวดรายได้ ซิงค์จาก Firebase (revenue_categories) แล้ว (${timeStr})`);
-        setTimeout(() => {
-          isSyncingFromRemoteRef.current = false;
-        }, 150);
+      if (!remoteCats || remoteCats.length === 0) return;
+
+      // Firestore's first onSnapshot event can arrive before the server cache
+      // or bootstrap has finished. Queue it instead of silently discarding it.
+      if (!hasLoadedInitialServerDataRef.current) {
+        pendingRemoteCategoriesRef.current = remoteCats;
+        return;
       }
+
+      applyRemoteCategories(remoteCats);
     });
 
     return () => {
