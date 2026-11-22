@@ -51,6 +51,7 @@ import {
 
 interface ExcelManagerModalProps {
   isOpen: boolean;
+  isInline?: boolean;
   onClose: () => void;
   categories: RevenueCategory[];
   landTax: DetailedTaxData;
@@ -72,6 +73,7 @@ interface ExcelManagerModalProps {
 
 export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   isOpen,
+  isInline = false,
   onClose,
   categories,
   landTax,
@@ -395,7 +397,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     [selectedCategoryObj]
   );
 
-  if (!isOpen) return null;
+  if (!isOpen && !isInline) return null;
 
   const canImport = session?.permissions.canImportExport ?? false;
 
@@ -546,8 +548,20 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col">
+    <div
+      className={
+        isInline
+          ? 'animate-in fade-in duration-300'
+          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-200'
+      }
+    >
+      <div
+        className={
+          isInline
+            ? 'bg-white rounded-3xl shadow-xs w-full overflow-hidden border border-slate-200 flex flex-col'
+            : 'bg-white rounded-3xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 max-h-[92vh] flex flex-col'
+        }
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-950 text-white p-5 flex items-center justify-between border-b border-emerald-800/40">
           <div className="flex items-center space-x-3.5">
@@ -557,7 +571,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h3 className="font-bold text-lg text-white">
-                  ระบบนำเข้าและดาวน์โหลด Excel (.xlsx)
+                  ระบบดาวน์โหลดและนำเข้าข้อมูลเป็น Excel (.xlsx)
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[11px] font-semibold">
                   ปีงบประมาณ 2570
@@ -568,13 +582,15 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/70 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
-            title="ปิดหน้าต่าง"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isInline && (
+            <button
+              onClick={onClose}
+              className="text-white/70 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              title="ปิดหน้าต่าง"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Live Data Status Bar - Guarantees data displayed directly matches the active system state */}
@@ -758,7 +774,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
 
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+        <div className={isInline ? 'p-5 sm:p-6 space-y-5' : 'p-5 sm:p-6 overflow-y-auto space-y-4'}>
           {successMessage && (
             <div className="p-4 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-2xl text-xs sm:text-sm flex items-start space-x-3 shadow-xs animate-in fade-in duration-150">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -1660,17 +1676,19 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
 
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <div className="text-[11px] text-slate-500">
-            ระบบนำเข้า-ส่งออก Excel • ฝ่ายพัฒนารายได้ กองคลัง
+        {!isInline && (
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <div className="text-[11px] text-slate-500">
+              ระบบนำเข้า-ส่งออก Excel • ฝ่ายพัฒนารายได้ กองคลัง
+            </div>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs rounded-xl hover:bg-slate-100 font-semibold cursor-pointer transition-colors shadow-xs"
+            >
+              ปิดหน้าต่าง
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs rounded-xl hover:bg-slate-100 font-semibold cursor-pointer transition-colors shadow-xs"
-          >
-            ปิดหน้าต่าง
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

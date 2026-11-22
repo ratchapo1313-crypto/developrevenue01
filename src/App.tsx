@@ -779,6 +779,9 @@ export default function App() {
     if (newSession.role === 'Executive' && currentTab === 'memorandum') {
       setCurrentTab('overview');
     }
+    if (newSession.role !== 'User' && currentTab === 'excel') {
+      setCurrentTab('overview');
+    }
   };
 
   const handleSwitchRole = (newRole: 'User' | 'Director' | 'Executive') => {
@@ -833,10 +836,16 @@ export default function App() {
     if (newRole === 'Executive' && currentTab === 'memorandum') {
       setCurrentTab('overview');
     }
+    if (newRole !== 'User' && currentTab === 'excel') {
+      setCurrentTab('overview');
+    }
   };
 
   useEffect(() => {
     if (session?.role === 'Executive' && currentTab === 'memorandum') {
+      setCurrentTab('overview');
+    }
+    if (session?.role !== 'User' && currentTab === 'excel') {
       setCurrentTab('overview');
     }
   }, [session, currentTab]);
@@ -930,6 +939,26 @@ export default function App() {
             onUpdateTaxpayers={setTaxpayers}
             oldTaxDebtors={oldTaxDebtors}
             onUpdateOldTaxDebtors={setOldTaxDebtors}
+            session={session}
+          />
+        )}
+
+        {currentTab === 'excel' && session.role === 'User' && (
+          <ExcelManagerModal
+            isOpen={true}
+            isInline={true}
+            onClose={() => setCurrentTab('overview')}
+            categories={categories}
+            landTax={landTax}
+            signTax={signTax}
+            marketContracts={marketContracts}
+            marketSummaries={marketSummaries}
+            taxpayers={taxpayers}
+            dailyRecords={dailyRecords}
+            onImportDailyRecords={handleImportDailyRecords}
+            onImportBudgetUpdates={handleImportBudgetUpdates}
+            onImportTaxpayers={handleImportTaxpayers}
+            onImportMarketContracts={handleImportMarketContracts}
             session={session}
           />
         )}

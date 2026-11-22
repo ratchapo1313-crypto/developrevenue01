@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   FileCheck,
   Award,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { UserSession } from '../types/revenue';
 import { firebaseProjectId } from '../firebase';
@@ -42,8 +43,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'overview', label: 'ภาพรวมรายได้', icon: LayoutDashboard },
     { id: 'categories', label: '8 หมวดรายได้', icon: TableProperties },
     { id: 'taxes', label: 'ภาษีที่ดิน & ภาษีป้าย', icon: Landmark },
+    { id: 'excel', label: 'ระบบดาวน์โหลดและนำเข้าข้อมูลเป็น Excel (.xlsx)', icon: FileSpreadsheet },
     { id: 'memorandum', label: 'บันทึกข้อความราชการ', icon: FileText },
-  ].filter((tab) => !(session?.role === 'Executive' && tab.id === 'memorandum'));
+  ].filter((tab) => {
+    if (tab.id === 'excel' && session?.role !== 'User') return false;
+    if (tab.id === 'memorandum' && session?.role === 'Executive') return false;
+    return true;
+  });
 
   const getRoleInfo = () => {
     if (!session) {
