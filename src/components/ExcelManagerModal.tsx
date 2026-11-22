@@ -124,14 +124,17 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
     lastUpdated: null,
   });
 
-  // Refresh stats when opening modal or changing tab to firebase
+  // Refresh stats when opening modal or changing tab to firebase (only in modal mode)
   useEffect(() => {
-    if (isOpen) {
+    if (isInline && activeTab === 'firebase') {
+      setActiveTab('export');
+    }
+    if (isOpen && !isInline) {
       getFirestoreStats().then((stats) => {
         setFirebaseStats(stats);
       });
     }
-  }, [isOpen, activeTab, taxpayers.length, dailyRecords.length, categories.length]);
+  }, [isOpen, isInline, activeTab, taxpayers.length, dailyRecords.length, categories.length]);
 
   const handleTriggerFirebaseBootstrap = async (force = false) => {
     setIsFirebaseSyncing(true);
@@ -759,17 +762,19 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             <FileText className="w-4 h-4 text-emerald-700" />
             <span>ดาวน์โหลด Template</span>
           </button>
-          <button
-            onClick={() => setActiveTab('firebase')}
-            className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer ${
-              activeTab === 'firebase'
-                ? 'bg-white text-indigo-900 shadow-sm border border-indigo-200 font-bold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Database className="w-4 h-4 text-indigo-600" />
-            <span>ฐานข้อมูล Firebase</span>
-          </button>
+          {!isInline && (
+            <button
+              onClick={() => setActiveTab('firebase')}
+              className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                activeTab === 'firebase'
+                  ? 'bg-white text-indigo-900 shadow-sm border border-indigo-200 font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Database className="w-4 h-4 text-indigo-600" />
+              <span>ฐานข้อมูล Firebase</span>
+            </button>
+          )}
         </div>
 
 
@@ -1449,7 +1454,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
           )}
           {/* Tab 4: Firebase Database Management */}
 
-          {activeTab === 'firebase' && (
+          {!isInline && activeTab === 'firebase' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Firebase Message Notification */}
               {firebaseMessage && (
